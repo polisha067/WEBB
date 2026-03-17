@@ -2,7 +2,7 @@ from django.db import models
 
 class Genre(models.Model):
     """
-    Жанр фильма - категория для группировки фильмов.
+    Жанр фильма - категория для группировки фильмов
     Один жанр может быть у множества фильмов
     """
     name = models.CharField(max_length=100, unique=True)
