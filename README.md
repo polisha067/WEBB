@@ -19,7 +19,7 @@ http://localhost:8000/admin/
 
 - Django 4.2
 - Django REST Framework
-- SQLite
+- PostgreSQL
 - Docker
 
 ## Переменные окружения
