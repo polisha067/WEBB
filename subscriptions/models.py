@@ -22,6 +22,12 @@ class Subscription(models.Model):
     def __str__(self):
         return f'{self.name} - {self.price}₽'
 
+    @property
+    def features_list(self):
+        if not self.features:
+            return []
+        return [f.strip() for f in self.features.splitlines() if f.strip()]
+
 
 class UserSubscription(models.Model):
     """
