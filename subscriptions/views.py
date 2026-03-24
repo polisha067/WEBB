@@ -9,6 +9,8 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
     queryset = Subscription.objects.filter(is_active=True)
     serializer_class = SubscriptionSerializer
     permission_classes = [permissions.AllowAny]
+    search_fields = ['name', 'features']
+    ordering_fields = ['price', 'duration_days'] 
 
 
 class UserSubscriptionViewSet(viewsets.ModelViewSet):
