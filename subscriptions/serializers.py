@@ -6,7 +6,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     """Сериализатор для тарифных планов"""
     class Meta:
         model = Subscription
-        fields = '__all__'
+        fields = ['id', 'name', 'price', 'duration_days', 'features', 'is_active', 'created_at', 'updated_at']
 
 
 class UserSubscriptionSerializer(serializers.ModelSerializer):

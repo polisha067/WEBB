@@ -4,7 +4,7 @@ from .models import Subscription, UserSubscription
 from .serializers import SubscriptionSerializer, UserSubscriptionSerializer
 
 
-class SubscriptionViewSet(viewsets.ModelViewSet):
+class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
     """API для тарифных планов"""
     queryset = Subscription.objects.filter(is_active=True)
     serializer_class = SubscriptionSerializer
