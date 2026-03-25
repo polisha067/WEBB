@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from movies.models import Movie
 from subscriptions.models import Subscription
 
@@ -11,3 +11,12 @@ def home(request):
         'plans': Subscription.objects.filter(is_active=True),
     }
     return render(request, 'home.html', context)
+
+
+def movie_detail(request, movie_id):
+    movie = get_object_or_404(Movie, id=movie_id)
+    return render(request, 'movie_detail.html', {'movie': movie})
+
+
+def login_page(request):
+    return render(request, 'login.html')

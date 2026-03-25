@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}WEBB | Онлайн-кинотеатр{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <h1>Смотри лучшие фильмы онлайн</h1>
+    <p>Новые релизы, популярное и топ по рейтингу</p>
+  </section>
+
+  <section class="section">
+    <h2>Новые фильмы</h2>
+    <div class="movie-grid">
+      {% for movie in new_movies %}
+        <article class="movie-card">
+          {% if movie.poster %}
+            <img src="{{ movie.poster }}" alt="{{ movie.title }}">
+          {% else %}
+            <div class="no-poster">Нет постера</div>
+          {% endif %}
+          <div class="movie-body">
+            <h3>{{ movie.title }}</h3>
+            <p>{{ movie.release_year }} • ★ {{ movie.rating }}</p>
+          </div>
+        </article>
+      {% empty %}
+        <p class="empty">Пока нет новых фильмов.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Популярное</h2>
+    <div class="movie-grid">
+      {% for movie in popular_movies %}
+        <article class="movie-card small">
+          <h3>{{ movie.title }}</h3>
+          <p>{{ movie.release_year }} • {{ movie.duration }} мин • ★ {{ movie.rating }}</p>
+        </article>
+      {% empty %}
+        <p class="empty">Список пуст.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Топ по рейтингу</h2>
+    <div class="movie-grid">
+      {% for movie in top_movies %}
+        <article class="movie-card small">
+          <h3>{{ movie.title }}</h3>
+          <p>★ {{ movie.rating }} • {{ movie.release_year }}</p>
+        </article>
+      {% empty %}
+        <p class="empty">Список пуст.</p>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from rest_framework.schemas import get_schema_view
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from .views import home
+from .views import home, movie_detail, login_page
 
 urlpatterns = [
     path('', home, name='home'),
@@ -16,8 +16,9 @@ urlpatterns = [
     path('api/subscriptions/', include('subscriptions.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('login/', TemplateView.as_view(template_name='login.html'), name='login'),
+    path('login/', login_page, name='login'),
     path('register/', TemplateView.as_view(template_name='register.html'), name='register'),
+    path('movies/<int:movie_id>/', movie_detail, name='movie_detail'),
 ]
 
 if settings.DEBUG:
