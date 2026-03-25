@@ -10,6 +10,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'drf_spectacular',
     'accounts',
     'movies',
     'watchlist',
