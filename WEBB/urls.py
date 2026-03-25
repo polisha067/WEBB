@@ -6,6 +6,7 @@ from django.views.generic import TemplateView
 from rest_framework.schemas import get_schema_view
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from .views import home
+
 urlpatterns = [
     path('', home, name='home'),
     path('admin/', admin.site.urls),
