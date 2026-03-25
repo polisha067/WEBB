@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ movie.title }} | WEBB{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/movie_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+  <a href="/" class="back-link">← На главную</a>
+
+  <section class="movie-detail">
+    {% if movie.poster %}
+      <img src="{{ movie.poster }}" alt="{{ movie.title }}">
+    {% else %}
+      <div class="no-poster">Нет постера</div>
+    {% endif %}
+
+    <div class="movie-info">
+      <h1>{{ movie.title }}</h1>
+      <p class="meta">{{ movie.release_year }} • {{ movie.duration }} мин • ★ {{ movie.rating }}</p>
+      <p class="description">{{ movie.description }}</p>
+    </div>
+  </section>
+{% endblock %}

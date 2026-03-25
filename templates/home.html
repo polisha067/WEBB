@@ -19,7 +19,9 @@
       {% for movie in new_movies %}
         <article class="movie-card">
           {% if movie.poster %}
-            <img src="{{ movie.poster }}" alt="{{ movie.title }}">
+            <a href="/movies/{{ movie.id }}/" class="poster-link">
+              <img src="{{ movie.poster }}" alt="{{ movie.title }}">
+            </a>
           {% else %}
             <div class="no-poster">Нет постера</div>
           {% endif %}
