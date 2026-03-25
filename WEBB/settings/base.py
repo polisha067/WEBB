@@ -30,6 +30,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Cinema API',
+    'VERSION': '1.0.0',
+}
+
 LANGUAGE_CODE = 'ru-ru'
 TIME_ZONE = 'UTC'
 USE_I18N = True
