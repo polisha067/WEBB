@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Регистрация | WEBB{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+  <section class="auth-card">
+    <h1>Регистрация</h1>
+    {% if error %}
+      <p class="form-error">{{ error }}</p>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="username">Логин</label>
+      <input id="username" name="username" type="text" required>
+
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email">
+
+      <label for="password">Пароль</label>
+      <input id="password" name="password" type="password" required>
+
+      <label for="password_confirm">Повтори пароль</label>
+      <input id="password_confirm" name="password_confirm" type="password" required>
+
+      <button type="submit">Зарегистрироваться</button>
+    </form>
+    <p class="form-note">Уже есть аккаунт? <a href="/login/">Войти</a></p>
+  </section>
+{% endblock %}

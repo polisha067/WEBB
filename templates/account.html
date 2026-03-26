@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Личный кабинет | WEBB{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/account.css' %}">
+{% endblock %}
+
+{% block content %}
+  <section class="account-card">
+    <h1>Личный кабинет</h1>
+    <p><strong>Логин:</strong> {{ request.user.username }}</p>
+    <p><strong>Email:</strong> {{ request.user.email|default:"не указан" }}</p>
+    <a class="back-link" href="/">На главную</a>
+  </section>
+{% endblock %}

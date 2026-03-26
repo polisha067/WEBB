@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Вход | WEBB{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+  <section class="auth-card">
+    <h1>Вход</h1>
+    {% if error %}
+      <p class="form-error">{{ error }}</p>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="username">Логин</label>
+      <input id="username" name="username" type="text" required>
+
+      <label for="password">Пароль</label>
+      <input id="password" name="password" type="password" required>
+
+      <button type="submit">Войти</button>
+    </form>
+    <p class="form-note">Нет аккаунта? <a href="/register/">Регистрация</a></p>
+  </section>
+{% endblock %}

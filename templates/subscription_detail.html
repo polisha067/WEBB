@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ subscription.name }} | WEBB{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="subscription-detail">
+    <a href="{% url 'home' %}" class="back-link">← Назад к тарифам</a>
+    
+    <div class="detail-card {% if subscription.is_active %}active{% endif %}">
+      <div class="detail-header">
+        <h1 class="detail-name">{{ subscription.name }}</h1>
+        <div class="detail-price">{{ subscription.price }}₽</div>
+      </div>
+      
+      <div class="detail-info">
+        <div class="info-item">
+          <span class="info-label">Длительность:</span>
+          <span class="info-value">{{ subscription.duration_days }} дней</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Статус:</span>
+          <span class="info-value status-{% if subscription.is_active %}active{% else %}inactive{% endif %}">
+            {% if subscription.is_active %}Доступен{% else %}Недоступен{% endif %}
+          </span>
+        </div>
+      </div>
+      
+      <div class="detail-features">
+        <h3>Что входит в подписку:</h3>
+        <ul class="features-list">
+          {% for feature in subscription.features_list %}
+            <li>{{ feature }}</li>
+          {% empty %}
+            <li>Базовый доступ ко всем фильмам</li>
+            <li>HD качество</li>
+            <li>Просмотр на любых устройствах</li>
+          {% endfor %}
+        </ul>
+      </div>
+      
+      {% if request.user.is_authenticated %}
+        <button class="subscribe-btn" {% if not subscription.is_active %}disabled{% endif %}>
+          {% if not subscription.is_active %}Тариф недоступен{% else %}Оформить подписку{% endif %}
+        </button>
+      {% else %}
+        <div class="login-prompt">
+          <p>Войдите или зарегистрируйтесь, чтобы оформить подписку</p>
+          <div class="auth-buttons">
+            <a href="{% url 'login' %}" class="auth-btn">Войти</a>
+            <a href="{% url 'register' %}" class="auth-btn auth-btn-outline">Регистрация</a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}
