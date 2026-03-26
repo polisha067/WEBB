@@ -3,14 +3,16 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+
+# Загружаем .env ПЕРЕД импортом DATABASES
+load_dotenv()
+
 from .installed_apps import INSTALLED_APPS
 from .middleware import MIDDLEWARE
 from .database import DATABASES
 from .templates import TEMPLATES
 from .rest_framework import REST_FRAMEWORK
 from .cors import CORS_ALLOWED_ORIGINS, CORS_ALLOW_CREDENTIALS
-
-load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
