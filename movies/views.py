@@ -3,17 +3,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import Genre, Movie
 from .serializers import GenreSerializer, MovieSerializer
 
-class IsAdminOrReadOnly(permissions.BasePermission):
-    """Только администраторы могут создавать/изменять/удалять"""
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user and request.user.is_staff
-
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [permissions.IsAdminUser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
@@ -28,7 +21,7 @@ class GenreViewSet(viewsets.ModelViewSet):
 class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all().prefetch_related('genres')
     serializer_class = MovieSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [permissions.IsAdminUser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['genres', 'release_year', 'rating']
     search_fields = ['title', 'description']
