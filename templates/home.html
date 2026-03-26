@@ -58,4 +58,29 @@
       {% endfor %}
     </div>
   </section>
+
+  <section class="section plans-section">
+    <h2>Тарифные планы</h2>
+    <div class="plans-grid">
+      {% for plan in plans %}
+        <article class="plan-card">
+          <h3 class="plan-name">{{ plan.name }}</h3>
+          <div class="plan-price">{{ plan.price }}₽ <span>/ {{ plan.duration_days }} дн.</span></div>
+          <p class="plan-duration">Действует {{ plan.duration_days }} дней</p>
+          <ul class="plan-features">
+            {% for feature in plan.features_list %}
+              <li>{{ feature }}</li>
+            {% empty %}
+              <li>Базовый доступ ко всем фильмам</li>
+            {% endfor %}
+          </ul>
+          <a href="{% url 'subscription_detail' plan.id %}" class="plan-btn {% if request.user.is_authenticated %}{% else %}plan-btn-outline{% endif %}">
+            {% if request.user.is_authenticated %}Подробнее{% else %}Войти для покупки{% endif %}
+          </a>
+        </article>
+      {% empty %}
+        <p class="empty">Пока нет доступных тарифов.</p>
+      {% endfor %}
+    </div>
+  </section>
 {% endblock %}

@@ -15,6 +15,14 @@ def home(request):
     return render(request, 'home.html', context)
 
 
+def subscription_detail(request, subscription_id):
+    subscription = get_object_or_404(Subscription, id=subscription_id)
+    context = {
+        'subscription': subscription,
+    }
+    return render(request, 'subscription_detail.html', context)
+
+
 def movie_detail(request, movie_id):
     movie = get_object_or_404(Movie, id=movie_id)
     return render(request, 'movie_detail.html', {'movie': movie})
