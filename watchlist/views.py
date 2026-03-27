@@ -18,7 +18,7 @@ class WatchlistViewSet(viewsets.ModelViewSet):
     serializer_class = WatchlistSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['status']
+    filterset_fields = ['status', 'movie']
     search_fields = ['movie__title']
     ordering_fields = ['added_at', 'movie__title']
     ordering = ['-added_at']

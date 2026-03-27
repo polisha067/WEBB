@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect, render
 from movies.models import Movie
 from subscriptions.models import Subscription
+from watchlist.models import Watchlist
 
 
 def home(request):
@@ -25,7 +26,22 @@ def subscription_detail(request, subscription_id):
 
 def movie_detail(request, movie_id):
     movie = get_object_or_404(Movie, id=movie_id)
-    return render(request, 'movie_detail.html', {'movie': movie})
+    in_watchlist = Watchlist.objects.filter(user=request.user, movie=movie).first() if request.user.is_authenticated else None
+    context = {
+        'movie': movie,
+        'in_watchlist': in_watchlist,
+    }
+    return render(request, 'movie_detail.html', context)
+
+
+def watchlist_page(request):
+    if not request.user.is_authenticated:
+        return redirect('home')
+    watchlist = Watchlist.objects.filter(user=request.user).select_related('movie')
+    context = {
+        'watchlist': watchlist,
+    }
+    return render(request, 'watchlist.html', context)
 
 
 def login_page(request):

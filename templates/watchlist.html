@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Мой список | WEBB{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/watchlist.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="watchlist-page">
+  <h1>Мой список</h1>
+
+  <div class="watchlist-grid" id="watchlistGrid">
+    <div class="watchlist-loading">Загрузка...</div>
+  </div>
+</section>
+
+<script>
+  async function loadWatchlist() {
+    const grid = document.getElementById('watchlistGrid');
+
+    try {
+      const response = await fetch('/api/watchlist/', {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        grid.innerHTML = '<div class="watchlist-empty"><p>Необходимо войти в систему</p><p><a href="/login/">Войти</a></p></div>';
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Ошибка: ' + response.status);
+      }
+
+      const data = await response.json();
+      const items = Array.isArray(data) ? data : (data.results || []);
+
+      if (items.length === 0) {
+        grid.innerHTML = '<div class="watchlist-empty"><p>Ваш список пуст</p><p><a href="/">Перейти к фильмам</a></p></div>';
+        return;
+      }
+
+      grid.innerHTML = items.map(function(item) {
+        const movieId = typeof item.movie === 'object' ? item.movie.id : item.movie;
+        const movieTitle = item.movie_title || 'Фильм';
+        const moviePoster = item.movie_poster || null;
+        const movieYear = item.movie_release_year || '????';
+        const movieDuration = item.movie_duration || '?';
+        const movieRating = item.movie_rating || '?';
+        
+        const posterHtml = moviePoster
+          ? '<img src="' + moviePoster + '" alt="' + movieTitle + '" class="watchlist-poster">'
+          : '<div class="watchlist-poster no-poster">Нет постера</div>';
+        
+        return '<div class="watchlist-item-card">' +
+          posterHtml +
+          '<div class="watchlist-details">' +
+            '<h3 class="watchlist-title">' +
+              '<a href="/movies/' + movieId + '/">' + movieTitle + '</a>' +
+            '</h3>' +
+            '<p class="watchlist-meta">' + movieYear + ' • ' + movieDuration + ' мин • ★ ' + movieRating + '</p>' +
+          '</div>' +
+          '<div class="watchlist-actions">' +
+            '<div class="status-wrapper">' +
+              '<label>Статус:</label>' +
+              '<select class="status-select" onchange="updateStatus(' + item.id + ', this.value)">' +
+                '<option value="want_to_watch"' + (item.status === 'want_to_watch' ? ' selected' : '') + '>Хочу посмотреть</option>' +
+                '<option value="watching"' + (item.status === 'watching' ? ' selected' : '') + '>Смотрю</option>' +
+                '<option value="watched"' + (item.status === 'watched' ? ' selected' : '') + '>Посмотрел</option>' +
+              '</select>' +
+            '</div>' +
+            '<button class="remove-btn" onclick="removeItem(' + item.id + ')">Удалить</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+    } catch (error) {
+      console.error('Watchlist error:', error);
+      grid.innerHTML = '<div class="watchlist-empty"><p>Ошибка загрузки</p></div>';
+    }
+  }
+
+  async function updateStatus(id, status) {
+    try {
+      const response = await fetch('/api/watchlist/' + id + '/', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ status: status }),
+      });
+      if (!response.ok) throw new Error('Ошибка');
+      loadWatchlist();
+    } catch (error) {
+      alert('Не удалось обновить статус');
+    }
+  }
+
+  async function removeItem(id) {
+    if (!confirm('Удалить фильм из списка?')) return;
+
+    try {
+      const response = await fetch('/api/watchlist/' + id + '/', {
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+      });
+      if (!response.ok) throw new Error('Ошибка');
+      loadWatchlist();
+    } catch (error) {
+      alert('Не удалось удалить');
+    }
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  document.addEventListener('DOMContentLoaded', loadWatchlist);
+</script>
+{% endblock %}

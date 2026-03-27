@@ -4,23 +4,105 @@
 {% block title %}{{ movie.title }} | WEBB{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/movie_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/movie_detail.css' %}">
 {% endblock %}
 
 {% block content %}
-  <a href="/" class="back-link">← На главную</a>
+<a href="/" class="back-link">← На главную</a>
 
-  <section class="movie-detail">
-    {% if movie.poster %}
-      <img src="{{ movie.poster }}" alt="{{ movie.title }}">
+<section class="movie-detail">
+  {% if movie.poster %}
+    <img src="{{ movie.poster }}" alt="{{ movie.title }}">
+  {% else %}
+    <div class="no-poster">Нет постера</div>
+  {% endif %}
+
+  <div class="movie-info">
+    <h1>{{ movie.title }}</h1>
+    <p class="meta">{{ movie.release_year }} • {{ movie.duration }} мин • ★ {{ movie.rating }}</p>
+    <p class="description">{{ movie.description }}</p>
+    
+    {% if request.user.is_authenticated %}
+      <div id="watchlistButtonContainer">
+        <button class="watchlist-add-btn" id="watchlistBtn" onclick="toggleWatchlist()" disabled>
+          Загрузка...
+        </button>
+      </div>
     {% else %}
-      <div class="no-poster">Нет постера</div>
+      <p style="margin-top: 15px; color: var(--text-muted);">
+        <a href="/login/">Войдите</a>, чтобы добавить фильм в список просмотра
+      </p>
     {% endif %}
+  </div>
+</section>
 
-    <div class="movie-info">
-      <h1>{{ movie.title }}</h1>
-      <p class="meta">{{ movie.release_year }} • {{ movie.duration }} мин • ★ {{ movie.rating }}</p>
-      <p class="description">{{ movie.description }}</p>
-    </div>
-  </section>
+{% if request.user.is_authenticated %}
+<script>
+  const movieId = {{ movie.id }};
+  let inWatchlist = {{ in_watchlist.id|default:'null' }};
+  
+  function initButton() {
+    const btn = document.getElementById('watchlistBtn');
+    if (inWatchlist) {
+      btn.className = 'watchlist-add-btn added';
+      btn.innerHTML = '✓ В списке (нажмите для удаления)';
+    } else {
+      btn.className = 'watchlist-add-btn';
+      btn.innerHTML = '+ В список';
+    }
+    btn.disabled = false;
+  }
+  
+  async function toggleWatchlist() {
+    const btn = document.getElementById('watchlistBtn');
+    btn.disabled = true;
+    
+    try {
+      if (inWatchlist) {
+        const response = await fetch(`/api/watchlist/${inWatchlist}/`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+        });
+        if (!response.ok) throw new Error('Ошибка');
+        inWatchlist = null;
+      } else {
+        const response = await fetch('/api/watchlist/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({ movie: movieId, status: 'want_to_watch' }),
+        });
+        if (!response.ok) throw new Error('Ошибка');
+        const data = await response.json();
+        inWatchlist = data.id;
+      }
+      initButton();
+    } catch (error) {
+      alert('Не удалось обновить список');
+      btn.disabled = false;
+    }
+  }
+  
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  
+  document.addEventListener('DOMContentLoaded', initButton);
+</script>
+{% endif %}
 {% endblock %}

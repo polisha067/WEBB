@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.schemas import get_schema_view
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from .views import home, movie_detail, login_page, register_page, logout_page, account_page, subscription_detail
+from .views import home, movie_detail, login_page, register_page, logout_page, account_page, subscription_detail, watchlist_page
 
 urlpatterns = [
     path('', home, name='home'),
@@ -19,6 +19,7 @@ urlpatterns = [
     path('register/', register_page, name='register'),
     path('logout/', logout_page, name='logout'),
     path('account/', account_page, name='account'),
+    path('watchlist/', watchlist_page, name='watchlist'),
     path('movies/<int:movie_id>/', movie_detail, name='movie_detail'),
     path('subscriptions/<int:subscription_id>/', subscription_detail, name='subscription_detail'),
 ]
