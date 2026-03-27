@@ -142,16 +142,3 @@ Authorization: Token <ваш-токен>
 Открыть UI: `http://localhost:8000/api/docs/`
 
 ---
-
-## Структура проекта
-
-```
-c:\WEBB/
-├── accounts/       # Пользователи, регистрация, логин
-├── movies/         # Фильмы, жанры
-├── subscriptions/  # Подписки, тарифы
-├── watchlist/      # Список просмотра
-├── templates/      # HTML шаблоны
-├── staticfiles/    # Статика
-└── WEBB/           # Настройки проекта
-```
