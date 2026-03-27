@@ -10,11 +10,7 @@ from .openapi import WATCHLIST_SCHEMA
 
 @WATCHLIST_SCHEMA
 class WatchlistViewSet(viewsets.ModelViewSet):
-    """
-    API для управления списком просмотра.
-    POST - добавить фильм
-    GET - получить мой список
-    """
+    """API для управления списком просмотра"""
     serializer_class = WatchlistSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
