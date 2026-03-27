@@ -35,7 +35,12 @@ class Watchlist(models.Model):
         verbose_name = 'Список просмотра'
         verbose_name_plural = 'Списки просмотра'
         ordering = ['-added_at']
-        unique_together = ['user', 'movie']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'movie'],
+                name='unique_user_movie'
+            )
+        ]
         indexes = [
             models.Index(fields=['user', 'status']),
         ]
