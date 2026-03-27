@@ -3,9 +3,12 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
+from drf_spectacular.utils import extend_schema
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+from .openapi import REGISTER_SCHEMA, LOGIN_SCHEMA, LOGOUT_SCHEMA, ME_SCHEMA
 
 
+@REGISTER_SCHEMA
 class RegisterViewSet(viewsets.GenericViewSet):
     """
     Регистрация нового пользователя
@@ -19,7 +22,6 @@ class RegisterViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Получаем токен
         token = Token.objects.get(user=user)
 
         return Response({
@@ -30,6 +32,7 @@ class RegisterViewSet(viewsets.GenericViewSet):
         }, status=status.HTTP_201_CREATED)
 
 
+@LOGIN_SCHEMA
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def login_view(request):
@@ -53,6 +56,7 @@ def login_view(request):
     })
 
 
+@LOGOUT_SCHEMA
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def logout_view(request):
@@ -60,7 +64,6 @@ def logout_view(request):
     Выход пользователя (удаление токена)
     POST /api/accounts/logout/
     """
-    # Удаляем токен текущего пользователя
     request.user.auth_token.delete()
 
     return Response({
@@ -69,6 +72,7 @@ def logout_view(request):
     })
 
 
+@ME_SCHEMA
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def me_view(request):

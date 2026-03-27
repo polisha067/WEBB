@@ -2,10 +2,13 @@ from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin
+from drf_spectacular.utils import extend_schema
 from .models import Subscription, UserSubscription
 from .serializers import SubscriptionSerializer, UserSubscriptionSerializer
+from .openapi import SUBSCRIPTION_SCHEMA, USER_SUBSCRIPTION_SCHEMA
 
 
+@SUBSCRIPTION_SCHEMA
 class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
     """API для тарифных планов"""
     queryset = Subscription.objects.filter(is_active=True)
@@ -15,6 +18,7 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ['price', 'duration_days']
 
 
+@USER_SUBSCRIPTION_SCHEMA
 class UserSubscriptionViewSet(ListModelMixin,
                               RetrieveModelMixin,
                               CreateModelMixin,

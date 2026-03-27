@@ -2,7 +2,10 @@ from rest_framework import viewsets, permissions, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Genre, Movie
 from .serializers import GenreSerializer, MovieSerializer
+from .openapi import GENRE_SCHEMA, MOVIE_SCHEMA
 
+
+@GENRE_SCHEMA
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
@@ -18,6 +21,7 @@ class GenreViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
 
+@MOVIE_SCHEMA
 class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all().prefetch_related('genres')
     serializer_class = MovieSerializer

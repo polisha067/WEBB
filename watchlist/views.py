@@ -1,11 +1,14 @@
 from rest_framework import viewsets, permissions, filters
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
 from .models import Watchlist
 from .serializers import WatchlistSerializer
 from .permissions import IsOwnerOrReadOnly
+from .openapi import WATCHLIST_SCHEMA
 
 
+@WATCHLIST_SCHEMA
 class WatchlistViewSet(viewsets.ModelViewSet):
     """
     API для управления списком просмотра.
