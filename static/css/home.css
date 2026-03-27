@@ -1,0 +1,406 @@
+:root {
+  --primary-red: #db3e3e;
+  --primary-red-hover: #e14747;
+  --bg-dark: #0f0f0f;
+  --bg-card: #1a1a1a;
+  --bg-element: #2a2a2a;
+  --bg-element-light: #202020;
+  --text-white: #ffffff;
+  --text-gray: #c8c8c8;
+  --text-muted: #b2b2b2;
+  --text-dark: #9a9a9a;
+  --text-light: #888;
+  --border-color: #2a2a2a;
+  --status-error: #ff4757;
+}
+
+.hero {
+  background: url(../images/КОТИКИ.jpg);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 26px;
+  margin-top: 20px;
+}
+
+.hero h1 {
+  margin: 0 0 12px;
+  font-size: 32px;
+  color: #000000;
+}
+
+.hero p {
+  margin: 0 0 20px;
+  color: #201f1f;
+}
+
+.section h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.movie-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+
+.movie-card {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.movie-card img,
+.no-poster {
+  width: 100%;
+  height: 230px;
+  object-fit: cover;
+  display: block;
+}
+
+.poster-link {
+  display: block;
+}
+
+.no-poster {
+  background: #202020;
+  color: #888;
+  display: grid;
+  place-items: center;
+}
+
+.movie-body {
+  padding: 12px;
+}
+
+.movie-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.movie-card p {
+  margin: 0;
+  color: #b2b2b2;
+  font-size: 14px;
+}
+
+.movie-card.small {
+  padding: 0;
+}
+
+.movie-card.small h3 {
+  margin: 0 0 6px;
+}
+
+.movie-card.small .movie-body {
+  padding: 12px;
+}
+
+.empty {
+  color: #9a9a9a;
+  margin: 0;
+}
+
+.plans-section {
+  margin-top: 40px;
+}
+
+.plans-section h2 {
+  margin: 0 0 20px;
+  font-size: 20px;
+}
+
+.plans-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.plan-card {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 20px;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.plan-card:hover {
+  border-color: var(--primary-red);
+  box-shadow: 0 5px 20px rgba(229, 9, 20, 0.15);
+  transform: translateY(-3px);
+}
+
+.plan-card.featured {
+  border-color: var(--primary-red);
+  box-shadow: 0 5px 25px rgba(229, 9, 20, 0.2);
+}
+
+.plan-name {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.plan-price {
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--primary-red);
+  margin-bottom: 12px;
+}
+
+.plan-price span {
+  font-size: 14px;
+  color: #888;
+  font-weight: normal;
+}
+
+.plan-duration {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 15px;
+}
+
+.plan-features {
+  list-style: none;
+  margin-bottom: 20px;
+}
+
+.plan-features li {
+  padding: 6px 0;
+  color: #c8c8c8;
+  border-bottom: 1px solid #2a2a2a;
+  font-size: 14px;
+}
+
+.plan-features li:last-child {
+  border-bottom: none;
+}
+
+.plan-features li::before {
+  content: '✓';
+  color: var(--primary-red);
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+.plan-btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: var(--primary-red);
+  color: #ffffff;
+  text-align: center;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-decoration: none;
+}
+
+.plan-btn:hover {
+  background: var(--primary-red-hover);
+  text-decoration: none;
+}
+
+.plan-btn-outline {
+  background: transparent;
+  border: 2px solid var(--primary-red);
+  color: var(--primary-red);
+}
+
+.plan-btn-outline:hover {
+  background: var(--primary-red);
+  color: #ffffff;
+}
+
+.subscription-detail {
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+.back-link {
+  display: inline-block;
+  color: #888;
+  margin-bottom: 15px;
+  transition: color 0.3s;
+}
+
+.back-link:hover {
+  color: var(--primary-red);
+  text-decoration: none;
+}
+
+.detail-card {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 30px;
+}
+
+.detail-card.active {
+  border-color: var(--primary-red);
+  box-shadow: 0 5px 25px rgba(229, 9, 20, 0.2);
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.detail-name {
+  font-size: 28px;
+  color: #ffffff;
+}
+
+.detail-price {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--primary-red);
+}
+
+.detail-info {
+  margin-bottom: 25px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: #888;
+}
+
+.info-value {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.status-active {
+  color: var(--primary-red);
+}
+
+.status-inactive {
+  color: var(--status-error);
+}
+
+.detail-features h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #ffffff;
+}
+
+.features-list {
+  list-style: none;
+}
+
+.features-list li {
+  padding: 10px 0;
+  color: #c8c8c8;
+  border-bottom: 1px solid #2a2a2a;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.features-list li:last-child {
+  border-bottom: none;
+}
+
+.features-list li::before {
+  content: '✓';
+  color: var(--primary-red);
+  margin-right: 10px;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.subscribe-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary-red);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 20px;
+}
+
+.subscribe-btn:hover:not(:disabled) {
+  background: var(--primary-red-hover);
+}
+
+.subscribe-btn:disabled {
+  background: #333;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.login-prompt {
+  text-align: center;
+  padding: 25px;
+  background: #2a2a2a;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.login-prompt p {
+  margin-bottom: 15px;
+  color: #c8c8c8;
+  font-size: 14px;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.auth-btn {
+  padding: 10px 25px;
+  background: var(--primary-red);
+  color: #ffffff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.auth-btn:hover {
+  background: var(--primary-red-hover);
+  text-decoration: none;
+}
+
+.auth-btn-outline {
+  background: transparent;
+  border: 2px solid var(--primary-red);
+  color: var(--primary-red);
+}
+
+.auth-btn-outline:hover {
+  background: var(--primary-red);
+  color: #ffffff;
+}
