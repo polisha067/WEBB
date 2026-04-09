@@ -1,10 +1,9 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate
 from drf_spectacular.utils import extend_schema
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+from .services import AccountService
 from .openapi import REGISTER_SCHEMA, LOGIN_SCHEMA, LOGOUT_SCHEMA, ME_SCHEMA
 
 
@@ -20,9 +19,14 @@ class RegisterViewSet(viewsets.GenericViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
 
-        token = Token.objects.get(user=user)
+        data = serializer.validated_data
+        user, token = AccountService.register(
+            username=data['username'],
+            email=data.get('email', ''),
+            password=data['password'],
+            password_confirm=data['password_confirm'],
+        )
 
         return Response({
             'status': 'success',
@@ -43,16 +47,20 @@ def login_view(request):
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    validated_data = serializer.validated_data
+    data = serializer.validated_data
+    user, token = AccountService.login(
+        username=data['username'],
+        password=data['password'],
+    )
 
     return Response({
         'status': 'success',
         'message': 'Вход выполнен успешно',
         'user': {
-            'username': validated_data['username'],
-            'email': validated_data['email']
+            'username': user.username,
+            'email': user.email
         },
-        'token': validated_data['token']
+        'token': token.key
     })
 
 
@@ -64,7 +72,7 @@ def logout_view(request):
     Выход пользователя (удаление токена)
     POST /api/accounts/logout/
     """
-    request.user.auth_token.delete()
+    AccountService.logout(request.user)
 
     return Response({
         'status': 'success',
