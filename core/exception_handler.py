@@ -10,7 +10,7 @@ from core.exceptions import DomainException
 
 def custom_exception_handler(exc, context):
     """
-    Если исключение — DomainException, возвращаем Response с
+    Если исключение - DomainException, возвращаем Response с
     detail и error_code. Иначе - стандартный обработчик DRF
     """
     if isinstance(exc, DomainException):
