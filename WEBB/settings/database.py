@@ -1,17 +1,23 @@
 # База данных
 
-import os
 from pathlib import Path
+from core.conf import (
+    POSTGRES_DB,
+    POSTGRES_USER,
+    POSTGRES_PASSWORD,
+    POSTGRES_HOST,
+    POSTGRES_PORT,
+)
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'cinema_db'),
-        'USER': os.getenv('POSTGRES_USER', 'cinema_user'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'cinema_password'),
-        'HOST': os.getenv('POSTGRES_HOST', 'db'),
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+        'NAME': POSTGRES_DB,
+        'USER': POSTGRES_USER,
+        'PASSWORD': POSTGRES_PASSWORD,
+        'HOST': POSTGRES_HOST,
+        'PORT': POSTGRES_PORT,
     }
 }
