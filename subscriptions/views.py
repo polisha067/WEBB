@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status, serializers
+from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin
@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema
 from .models import Subscription, UserSubscription
 from .serializers import SubscriptionSerializer, UserSubscriptionSerializer
 from .openapi import SUBSCRIPTION_SCHEMA, USER_SUBSCRIPTION_SCHEMA
+from .services import SubscriptionService
 
 
 @SUBSCRIPTION_SCHEMA
@@ -33,28 +34,20 @@ class UserSubscriptionViewSet(ListModelMixin,
             user=self.request.user
         ).select_related('subscription')
 
-    def perform_create(self, serializer):
-        active_exists = UserSubscription.objects.filter(
-            user=self.request.user,
-            status='active',
-            is_active=True,
-        ).exists()
-        if active_exists:
-            raise serializers.ValidationError(
-                'У вас уже есть активная подписка'
-            )
-        serializer.save(user=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_subscription = SubscriptionService.activate(
+            user=request.user,
+            subscription=serializer.validated_data["subscription"],
+        )
+        out = self.get_serializer(user_subscription)
+        return Response(out.data, status=201)
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
         """Отмена подписки"""
-        subscription = self.get_object()
-        if subscription.status != 'active':
-            return Response(
-                {'detail': 'Подписка уже неактивна'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        subscription.status = 'cancelled'
-        subscription.is_active = False
-        subscription.save()
-        return Response(UserSubscriptionSerializer(subscription).data)
+        user_subscription = self.get_object()
+        user_subscription = SubscriptionService.cancel(user_subscription=user_subscription)
+        return Response(self.get_serializer(user_subscription).data)
