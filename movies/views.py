@@ -3,6 +3,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import Genre, Movie
 from .serializers import GenreSerializer, MovieSerializer
 from .openapi import GENRE_SCHEMA, MOVIE_SCHEMA
+from .services import MovieService
 
 
 @GENRE_SCHEMA
@@ -39,3 +40,14 @@ class MovieViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
+    
+    def get_queryset(self):
+        if self.action == 'list':
+            ordering = self.request.query_params.get('ordering')
+
+            if ordering == '-rating':
+                return MovieService.get_top_rated()
+
+            return MovieService.get_new_releases()
+
+        return Movie.objects.all().prefetch_related('genres')
