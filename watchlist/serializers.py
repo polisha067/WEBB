@@ -11,21 +11,3 @@ class WatchlistSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'movie', 'movie_title', 'status', 'added_at']
         read_only_fields = ['id', 'user', 'added_at', 'movie_title']
 
-    def validate(self, data):
-
-        user = self.context['request'].user
-        movie = data.get('movie')
-
-        if not self.instance:
-            if Watchlist.objects.filter(user=user, movie=movie).exists():
-                raise serializers.ValidationError(
-                    {'movie': 'этот фильм уже есть в вашем списке'}
-                )
-
-        elif self.instance and movie != self.instance.movie:
-            if Watchlist.objects.filter(user=user, movie=movie).exists():
-                raise serializers.ValidationError(
-                    {'movie': 'этот фильм уже есть в вашем списке'}
-                )
-        
-        return data
