@@ -9,7 +9,7 @@ moderation_bp = Blueprint('moderation', __name__)
 
 @moderation_bp.route('/reviews/pending/', methods=['GET'])
 @require_admin
-@swag_from('moderation.yaml', endpoint='get_pending_reviews')
+@swag_from('../specs/moderation.yaml')
 def get_pending_reviews():
     """Получить отзывы на модерации с пагинацией"""
     page = request.args.get('page', 1, type=int)
@@ -33,7 +33,7 @@ def get_pending_reviews():
 
 @moderation_bp.route('/reviews/<int:review_id>/moderate/', methods=['PATCH'])
 @require_admin
-@swag_from('moderation.yaml', endpoint='moderate_review')
+@swag_from('../specs/moderation.yaml')
 def moderate_review(review_id):
     """Сменить статус отзыва (active / hidden)"""
     review = Review.query.get_or_404(review_id)
@@ -51,7 +51,7 @@ def moderate_review(review_id):
 
 @moderation_bp.route('/comments/pending/', methods=['GET'])
 @require_admin
-@swag_from('moderation.yaml', endpoint='get_pending_comments')
+@swag_from('../specs/moderation.yaml')
 def get_pending_comments():
     """Получить комментарии на модерации с пагинацией"""
     page = request.args.get('page', 1, type=int)
@@ -75,7 +75,7 @@ def get_pending_comments():
 
 @moderation_bp.route('/comments/<int:comment_id>/moderate/', methods=['PATCH'])
 @require_admin
-@swag_from('moderation.yaml', endpoint='moderate_comment')
+@swag_from('../specs/moderation.yaml')
 def moderate_comment(comment_id):
     """Сменить статус комментария (active / hidden)"""
     comment = Comment.query.get_or_404(comment_id)

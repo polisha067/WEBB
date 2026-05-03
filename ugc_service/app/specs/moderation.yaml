@@ -1,260 +1,200 @@
-tags:
-  - name: Moderation
-    description: API для модерации пользовательского контента (UGC)
+swagger: "2.0"
+info:
+  title: UGC Service API - Moderation
+  description: API для модерации пользовательского контента
+  version: "1.0.0"
+basePath: /api/v1/moderation
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  TokenAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: "Введите токен в формате: Token <ваш_токен>"
 
 security:
   - TokenAuth: []
 
+tags:
+  - name: Moderation
+    description: Модерация контента
+
 paths:
   /reviews/pending/:
     get:
-      summary: Получить список отзывов на модерации
+      summary: Получить отзывы на модерации
       tags: [Moderation]
-      description: Возвращает отзывы со статусом 'pending' с пагинацией. Доступно только администраторам.
+      description: Возвращает отзывы со статусом 'pending' с пагинацией
       parameters:
         - name: page
           in: query
-          description: Номер страницы
-          required: false
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
+          type: integer
+          default: 1
+          minimum: 1
         - name: per_page
           in: query
-          description: Количество элементов на странице (макс 100)
-          required: false
-          schema:
-            type: integer
-            default: 20
-            maximum: 100
+          type: integer
+          default: 20
+          maximum: 100
       responses:
-        '200':
+        200:
           description: Успешный список
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  count: { type: integer }
-                  page: { type: integer }
-                  per_page: { type: integer }
-                  pages: { type: integer }
-                  next: { type: integer, nullable: true }
-                  prev: { type: integer, nullable: true }
-                  results:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Review'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+          schema:
+            type: object
+            properties:
+              count: { type: integer }
+              page: { type: integer }
+              per_page: { type: integer }
+              pages: { type: integer }
+              next: { type: integer }
+              prev: { type: integer }
+              results:
+                type: array
+                items: { $ref: '#/definitions/Review' }
+        401: { $ref: '#/responses/Unauthorized' }
+        403: { $ref: '#/responses/Forbidden' }
 
   /reviews/{review_id}/moderate/:
     patch:
-      summary: Модерировать отзыв (сменить статус)
+      summary: Модерировать отзыв
       tags: [Moderation]
-      description: Изменяет статус отзыва на 'active' или 'hidden'. Доступно только администраторам.
       parameters:
         - name: review_id
           in: path
+          type: integer
           required: true
-          description: ID отзыва
+      parameters:
+        - name: body
+          in: body
+          required: true
           schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [status]
-              properties:
-                status:
-                  type: string
-                  enum: [active, hidden]
-                  description: Новый статус отзыва
+            type: object
+            required: [status]
+            properties:
+              status:
+                type: string
+                enum: [active, hidden]
       responses:
-        '200':
-          description: Статус успешно изменен
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message: { type: string, example: "Status updated" }
-                  review:
-                    $ref: '#/components/schemas/Review'
-        '400':
-          description: Неверный статус
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-                example:
-                  error: { code: 'VALIDATION_ERROR', message: 'Invalid status' }
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        200:
+          description: Статус обновлён
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              review: { $ref: '#/definitions/Review' }
+        400: { $ref: '#/responses/BadRequest' }
+        401: { $ref: '#/responses/Unauthorized' }
+        403: { $ref: '#/responses/Forbidden' }
+        404: { $ref: '#/responses/NotFound' }
 
   /comments/pending/:
     get:
-      summary: Получить список комментариев на модерации
+      summary: Получить комментарии на модерации
       tags: [Moderation]
-      description: Возвращает комментарии со статусом 'pending' с пагинацией.
       parameters:
         - name: page
           in: query
-          description: Номер страницы
-          required: false
-          schema:
-            type: integer
-            default: 1
+          type: integer
+          default: 1
         - name: per_page
           in: query
-          description: Количество элементов на странице
-          required: false
-          schema:
-            type: integer
-            default: 20
+          type: integer
+          default: 20
       responses:
-        '200':
+        200:
           description: Успешный список
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  count: { type: integer }
-                  page: { type: integer }
-                  per_page: { type: integer }
-                  pages: { type: integer }
-                  next: { type: integer, nullable: true }
-                  prev: { type: integer, nullable: true }
-                  results:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Comment'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+          schema:
+            type: object
+            properties:
+              count: { type: integer }
+              results: { type: array, items: { $ref: '#/definitions/Comment' } }
+        401: { $ref: '#/responses/Unauthorized' }
+        403: { $ref: '#/responses/Forbidden' }
 
   /comments/{comment_id}/moderate/:
     patch:
-      summary: Модерировать комментарий (сменить статус)
+      summary: Модерировать комментарий
       tags: [Moderation]
-      description: Изменяет статус комментария на 'active' или 'hidden'.
       parameters:
         - name: comment_id
           in: path
+          type: integer
           required: true
-          description: ID комментария
+      parameters:
+        - name: body
+          in: body
+          required: true
           schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [status]
-              properties:
-                status:
-                  type: string
-                  enum: [active, hidden]
+            type: object
+            required: [status]
+            properties:
+              status:
+                type: string
+                enum: [active, hidden]
       responses:
-        '200':
-          description: Статус успешно изменен
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message: { type: string }
-                  comment:
-                    $ref: '#/components/schemas/Comment'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        200:
+          description: Статус обновлён
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              comment: { $ref: '#/definitions/Comment' }
+        400: { $ref: '#/responses/BadRequest' }
+        401: { $ref: '#/responses/Unauthorized' }
+        403: { $ref: '#/responses/Forbidden' }
+        404: { $ref: '#/responses/NotFound' }
 
-components:
-  schemas:
-    Review:
+definitions:
+  Review:
+    type: object
+    properties:
+      id: { type: integer }
+      user_id: { type: integer }
+      movie_id: { type: integer }
+      rating: { type: integer, minimum: 1, maximum: 10 }
+      text: { type: string }
+      status: { type: string, enum: [pending, active, hidden] }
+      created_at: { type: string, format: date-time }
+  Comment:
+    type: object
+    properties:
+      id: { type: integer }
+      user_id: { type: integer }
+      movie_id: { type: integer }
+      parent_id: { type: integer }
+      text: { type: string }
+      status: { type: string, enum: [pending, active, hidden] }
+      created_at: { type: string, format: date-time }
+
+responses:
+  Unauthorized:
+    description: Токен невалиден
+    schema:
       type: object
       properties:
-        id: { type: integer }
-        user_id: { type: integer }
-        movie_id: { type: integer }
-        rating: { type: integer, minimum: 1, maximum: 10 }
-        text: { type: string }
-        status: { type: string, enum: [pending, active, hidden] }
-        created_at: { type: string, format: date-time }
-
-    Comment:
+        error: { type: object }
+  Forbidden:
+    description: Нет прав администратора
+    schema:
       type: object
       properties:
-        id: { type: integer }
-        user_id: { type: integer }
-        movie_id: { type: integer }
-        parent_id: { type: integer, nullable: true }
-        text: { type: string }
-        status: { type: string, enum: [pending, active, hidden] }
-        created_at: { type: string, format: date-time }
-
-    Error:
+        error: { type: object }
+  BadRequest:
+    description: Ошибка валидации
+    schema:
       type: object
       properties:
-        error:
-          type: object
-          properties:
-            code: { type: string }
-            message: { type: string }
-
-  responses:
-    Unauthorized:
-      description: Токен отсутствует или невалиден
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-            example: { error: { code: 'UNAUTHORIZED', message: 'Token required' } }
-
-    Forbidden:
-      description: Недостаточно прав (требуется роль администратора)
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-            example: { error: { code: 'FORBIDDEN', message: 'Admin rights required' } }
-
-    BadRequest:
-      description: Ошибка валидации данных
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-
-    NotFound:
-      description: Ресурс не найден
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-            example: { error: { code: 'NOT_FOUND', message: 'Resource not found' } }
-
-  securitySchemes:
-    TokenAuth:
-      type: apiKey
-      in: header
-      name: Authorization
-      description: Введите токен в формате "Token <ваш_токен>"
+        error: { type: object }
+  NotFound:
+    description: Ресурс не найден
+    schema:
+      type: object
+      properties:
+        error: { type: object }
