@@ -90,3 +90,28 @@ def me_view(request):
     """
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def verify_user(request):
+    """
+    Проверка токена и возврат прав администратора/суперпользователя
+    GET /api/accounts/verify/
+    Authorization: Token <token>
+    """
+    user = request.user
+    if not user.is_active:
+        return Response(
+            {'detail': 'Аккаунт деактивирован'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    return Response({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'is_staff': user.is_staff,
+        'is_superuser': user.is_superuser,
+        'can_moderate': user.is_staff or user.is_superuser,
+    })

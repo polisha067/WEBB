@@ -1,7 +1,7 @@
 import requests
 import logging
 from flask import current_app
-from ..exceptions import MovieNotFoundError, IntegrationError
+from ..exceptions import MovieNotFoundError, IntegrationError, UnauthorizedError
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +82,27 @@ class DjangoAPIClient:
                 "Failed to fetch movie from Django API",
                 details={'movie_id': movie_id, 'error': str(e)}
             )
+
+    def verify_token(self, token: str) -> dict:
+        """
+        Проверяет токен через новый эндпоинт Django и возвращает права
+        """
+        base_url = current_app.config.get('DJANGO_API_URL')
+        url = f"{base_url}/accounts/verify/"
+        headers = {'Authorization': f'Token {token}'}
+
+        try:
+            response = self.session.get(url, headers=headers, timeout=self.timeout)
+
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 401:
+                raise UnauthorizedError("Invalid token")
+            else:
+                raise IntegrationError("Django API error")
+        except requests.RequestException as e:
+            logger.error(f"Auth service connection failed: {e}")
+            raise IntegrationError("Auth service unavailable")
 
 
 # Singleton
