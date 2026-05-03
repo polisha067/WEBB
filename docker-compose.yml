@@ -13,10 +13,12 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - cinema_network
 
   web:
     build: .
@@ -44,8 +46,59 @@ services:
       - POSTGRES_PORT=5432
     stdin_open: true
     tty: true
+    networks:
+      - cinema_network
+
+  ugc_db:
+    image: postgres:15-alpine
+    container_name: ugc_db
+    environment:
+      POSTGRES_DB: ${UGC_POSTGRES_DB}
+      POSTGRES_USER: ${UGC_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${UGC_POSTGRES_PASSWORD}
+    ports:
+      - "${UGC_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - ugc_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${UGC_POSTGRES_USER} -d ${UGC_POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cinema_network
+
+  ugc_service:
+    build: ./ugc_service
+    container_name: ugc_service
+    ports:
+      - "${UGC_PORT:-5001}:5001"
+    environment:
+      - DATABASE_URL=postgresql://${UGC_POSTGRES_USER}:${UGC_POSTGRES_PASSWORD}@${UGC_POSTGRES_HOST:-ugc_db}:${UGC_POSTGRES_PORT:-5432}/${UGC_POSTGRES_DB}
+      - DJANGO_API_URL=${DJANGO_API_URL:-http://web:8000/api}
+      - SECRET_KEY=${UGC_SECRET_KEY}
+      - CORS_ORIGINS=${UGC_CORS_ORIGINS}
+      - RATELIMIT_DEFAULT=${UGC_RATELIMIT_DEFAULT:-100 per hour}
+      - RATELIMIT_STORAGE_URL=${UGC_RATELIMIT_STORAGE_URL:-memory://}
+      - FLASK_ENV=${FLASK_ENV:-development}
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      ugc_db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    volumes:
+      - ./ugc_service:/app
+    networks:
+      - cinema_network
+    command: gunicorn --bind 0.0.0.0:5001 --workers 2 --timeout 120 run:app
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+  ugc_postgres_data:
+
+networks:
+  cinema_network:
+    driver: bridge
