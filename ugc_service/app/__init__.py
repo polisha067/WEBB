@@ -6,7 +6,6 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flasgger import Swagger
-from .routes.moderation import moderation_bp
 from .config import config
 from .exceptions import register_error_handlers
 
@@ -50,6 +49,7 @@ def create_app(config_name=None):
     def health():
         return jsonify({'status': 'ok', 'service': 'ugc'}), 200
 
+    from .routes.moderation import moderation_bp
     app.register_blueprint(moderation_bp, url_prefix='/api/v1/moderation')
 
     return app
