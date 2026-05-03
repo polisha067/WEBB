@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flasgger import swag_from
 from .. import db
 from ..models import Review, Comment
 from ..middleware import require_admin
@@ -8,16 +9,13 @@ moderation_bp = Blueprint('moderation', __name__)
 
 @moderation_bp.route('/reviews/pending/', methods=['GET'])
 @require_admin
+@swag_from('moderation.yaml', endpoint='get_pending_reviews')
 def get_pending_reviews():
     """Получить отзывы на модерации с пагинацией"""
-    # Параметры пагинации из query string
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
-
-    # Ограничиваем per_page, чтобы не нагрузить сервер
     per_page = min(per_page, 100)
 
-    # Пагинация через SQLAlchemy
     pagination = Review.query.filter_by(status='pending') \
         .order_by(Review.created_at.desc()) \
         .paginate(page=page, per_page=per_page, error_out=False)
@@ -35,6 +33,7 @@ def get_pending_reviews():
 
 @moderation_bp.route('/reviews/<int:review_id>/moderate/', methods=['PATCH'])
 @require_admin
+@swag_from('moderation.yaml', endpoint='moderate_review')
 def moderate_review(review_id):
     """Сменить статус отзыва (active / hidden)"""
     review = Review.query.get_or_404(review_id)
@@ -49,8 +48,10 @@ def moderate_review(review_id):
 
     return jsonify({'message': 'Status updated', 'review': review.to_dict()}), 200
 
+
 @moderation_bp.route('/comments/pending/', methods=['GET'])
 @require_admin
+@swag_from('moderation.yaml', endpoint='get_pending_comments')
 def get_pending_comments():
     """Получить комментарии на модерации с пагинацией"""
     page = request.args.get('page', 1, type=int)
@@ -74,6 +75,7 @@ def get_pending_comments():
 
 @moderation_bp.route('/comments/<int:comment_id>/moderate/', methods=['PATCH'])
 @require_admin
+@swag_from('moderation.yaml', endpoint='moderate_comment')
 def moderate_comment(comment_id):
     """Сменить статус комментария (active / hidden)"""
     comment = Comment.query.get_or_404(comment_id)

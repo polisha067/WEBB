@@ -10,7 +10,7 @@ class Review(db.Model):
     movie_id = db.Column(db.Integer, nullable=False, index=True)
     rating = db.Column(db.Integer, nullable=False)  # 1-10
     text = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, active, hidden
+    status = db.Column(db.String(20), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):

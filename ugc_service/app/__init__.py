@@ -6,6 +6,7 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flasgger import Swagger
+
 from .config import config
 from .exceptions import register_error_handlers
 
@@ -31,7 +32,7 @@ def create_app(config_name=None):
     if config_name not in config:
         config_name = 'development'
 
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder='specs')
     app.config.from_object(config[config_name])
 
     # Инициализация расширений
@@ -49,6 +50,7 @@ def create_app(config_name=None):
     def health():
         return jsonify({'status': 'ok', 'service': 'ugc'}), 200
 
+    # Регистрация blueprint'ов
     from .routes.moderation import moderation_bp
     app.register_blueprint(moderation_bp, url_prefix='/api/v1/moderation')
 

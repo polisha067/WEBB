@@ -3,7 +3,7 @@ from app import create_app, db
 from app.utils.django_client import django_client
 from app.models import Review, Comment
 from app.exceptions import UnauthorizedError, IntegrationError
-
+import requests
 
 @pytest.fixture
 def app():
@@ -56,7 +56,7 @@ def test_verify_token_django_unavailable(app, requests_mock):
     """Django недоступен - IntegrationError"""
     requests_mock.get(
         'http://test-django/api/accounts/verify/',
-        exc=ConnectionError("Django is down")
+        exc=requests.exceptions.ConnectionError("Django is down")
     )
     with app.app_context():
         with pytest.raises(IntegrationError, match="Auth service unavailable"):
