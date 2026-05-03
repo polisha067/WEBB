@@ -13,7 +13,16 @@ from .exceptions import register_error_handlers
 db = SQLAlchemy()
 migrate = Migrate()
 limiter = Limiter(key_func=get_remote_address)
-swagger = Swagger()
+swagger = Swagger(template={
+    'swagger': '2.0',
+    'info': {
+        'title': 'UGC Service API',
+        'description': 'Микросервис пользовательского контента (отзывы, комментарии, рейтинги)',
+        'version': '1.0.0'
+    },
+    'basePath': '/api/v1',
+    'schemes': ['http', 'https']
+})
 
 
 def create_app(config_name=None):

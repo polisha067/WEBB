@@ -126,3 +126,101 @@ def test_moderation_without_token(client):
     response = client.get('/api/v1/moderation/reviews/pending/')
     assert response.status_code == 401
     assert response.get_json()['error']['code'] == 'UNAUTHORIZED'
+
+def test_moderation_comments_pending_success(client, requests_mock, app):
+    """Админ получает список комментариев на модерации (200)"""
+    requests_mock.get(
+        'http://test-django/api/accounts/verify/',
+        json={'id': 1, 'username': 'admin', 'can_moderate': True},
+        status_code=200
+    )
+    with app.app_context():
+        Comment.query.delete()
+        db.session.commit()
+
+    response = client.get(
+        '/api/v1/moderation/comments/pending/',
+        headers={'Authorization': 'Token admin_token'}
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert 'results' in data
+    assert 'count' in data
+
+
+def test_moderation_comments_forbidden(client, requests_mock):
+    """Обычный юзер не может модерировать комментарии (403)"""
+    requests_mock.get(
+        'http://test-django/api/accounts/verify/',
+        json={'id': 2, 'username': 'user', 'can_moderate': False},
+        status_code=200
+    )
+    response = client.get(
+        '/api/v1/moderation/comments/pending/',
+        headers={'Authorization': 'Token user_token'}
+    )
+    assert response.status_code == 403
+
+def test_moderate_review_success(client, requests_mock, app):
+    """Админ успешно меняет статус отзыва"""
+    requests_mock.get(
+        'http://test-django/api/accounts/verify/',
+        json={'id': 1, 'username': 'admin', 'can_moderate': True},
+        status_code=200
+    )
+    with app.app_context():
+        review = Review(
+            user_id=1, movie_id=1, rating=8,
+            text='Great movie!', status='pending'
+        )
+        db.session.add(review)
+        db.session.commit()
+        review_id = review.id
+
+    response = client.patch(
+        f'/api/v1/moderation/reviews/{review_id}/moderate/',
+        json={'status': 'active'},
+        headers={'Authorization': 'Token admin_token'}
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['review']['status'] == 'active'
+
+
+def test_moderate_review_invalid_status(client, requests_mock, app):
+    """Невалидный статус - 400"""
+    requests_mock.get(
+        'http://test-django/api/accounts/verify/',
+        json={'id': 1, 'username': 'admin', 'can_moderate': True},
+        status_code=200
+    )
+    with app.app_context():
+        review = Review(
+            user_id=1, movie_id=1, rating=8,
+            text='Test', status='pending'
+        )
+        db.session.add(review)
+        db.session.commit()
+        review_id = review.id
+
+    response = client.patch(
+        f'/api/v1/moderation/reviews/{review_id}/moderate/',
+        json={'status': 'invalid_status'},
+        headers={'Authorization': 'Token admin_token'}
+    )
+    assert response.status_code == 400
+
+
+def test_moderate_review_not_found(client, requests_mock):
+    """Отзыв не найден - 404"""
+    requests_mock.get(
+        'http://test-django/api/accounts/verify/',
+        json={'id': 1, 'username': 'admin', 'can_moderate': True},
+        status_code=200
+    )
+    response = client.patch(
+        '/api/v1/moderation/reviews/99999/moderate/',
+        json={'status': 'active'},
+        headers={'Authorization': 'Token admin_token'}
+    )
+    assert response.status_code == 404
