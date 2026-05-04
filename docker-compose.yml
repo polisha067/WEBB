@@ -13,10 +13,12 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - cinema_network
 
   web:
     build: .
@@ -44,8 +46,43 @@ services:
       - POSTGRES_PORT=5432
     stdin_open: true
     tty: true
+    networks:
+      - cinema_network
+
+  fastapi_service:
+    build:
+      context: ./fastapi_service
+      dockerfile: Dockerfile
+    container_name: fastapi_service
+    ports:
+      - "${FASTAPI_PORT:-8001}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - APP_NAME=${FASTAPI_APP_NAME}
+      - DEBUG=${FASTAPI_DEBUG}
+      - LOG_LEVEL=${FASTAPI_LOG_LEVEL}
+      - CORS_ORIGINS=${FASTAPI_CORS_ORIGINS}
+      - SECRET_KEY=${FASTAPI_SECRET_KEY}
+      - DATABASE_URL=${FASTAPI_DATABASE_URL}
+      - DJANGO_API_URL=${FASTAPI_DJANGO_API_URL}
+      - DJANGO_API_TIMEOUT=${FASTAPI_DJANGO_API_TIMEOUT}
+    volumes:
+      - ./fastapi_service:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - cinema_network
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+
+networks:
+  cinema_network:
+    driver: bridge
