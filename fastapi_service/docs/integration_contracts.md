@@ -1,29 +1,14 @@
 # Контракты интеграции FastAPI <-> Django
 
-## 1. Общая архитектура взаимодействия
-- FastAPI взаимодействует с основным Django-приложением строго через HTTP/REST
-- Все межсервисные вызовы выполняются асинхронно с использованием `httpx.AsyncClient`
-- Коммуникация происходит внутри общей Docker-сети по внутренним DNS-именам контейнеров (например, `http://web:8000/api`)
-- FastAPI не имеет прямого доступа к базе данных Django. Все данные о пользователях и продуктах запрашиваются через публичный API Django
+## 1. Архитектура взаимодействия
+- Обмен данными строго через HTTP/REST внутри Docker-сети (`http://web:8000/api`)
+- Все вызовы из FastAPI выполняются асинхронно через `httpx.AsyncClient`
+- FastAPI не имеет прямого доступа к базе данных Django. Данные пользователей, фильмов и подписок запрашиваются через публичный DRF API
+- Аутентификация проходит через прокси-верификацию токена в Django (`GET /api/accounts/me/`)
 
 ## 2. DTO (Data Transfer Objects)
 
-### Регистрация / Вход (POST /api/accounts/register/, POST /api/accounts/login/)
-Ответ обёрнут в единый формат с мета-информацией:
-```json
-{
-  "status": "success",
-  "message": "Пользователь успешно зарегистрирован",
-  "user": {
-    "username": "string",
-    "email": "string"
-  },
-  "token": "drf_token_key_string"
-}
-```
-
-### Данные текущего пользователя (GET /api/accounts/me/)
-Прямой ответ сериализатора UserSerializer:
+### Пользователь (GET /api/accounts/me/)
 ```json
 {
   "id": 1,
@@ -32,83 +17,130 @@
 }
 ```
 
-### Выход (POST /api/accounts/logout/)
+### Фильм (GET /api/movies/{id}/)
 ```json
 {
-  "status": "success",
-  "message": "Выход выполнен успешно"
+  "id": 1,
+  "title": "string",
+  "description": "string",
+  "duration": 120,
+  "rating": 8.5,
+  "release_year": 2023,
+  "genres": [{"id": 1, "name": "Action"}, {"id": 2, "name": "Sci-Fi"}],
+  "poster": "https://...",
+  "created_at": "2023-01-01T00:00:00Z",
+  "updated_at": "2023-01-02T00:00:00Z"
 }
 ```
 
-Техническое примечание:
-- Django использует DRF Token Authentication. FastAPI верифицирует сессию, передавая токен в заголовке `Authorization: Token <key>` к эндпоинту `/api/accounts/me/`
-- Pydantic-модели в FastAPI должны строго соответствовать приведённым структурам для корректной авто-валидации и генерации OpenAPI
+### Тарифный план (GET /api/subscriptions/plans/{id}/)
+```json
+{
+  "id": 1,
+  "name": "Premium",
+  "price": 499.00,
+  "duration_days": 30,
+  "features": "4K\nБез рекламы\nОфлайн",
+  "is_active": true,
+  "created_at": "2023-01-01T00:00:00Z"
+}
+```
+
+### Подписка пользователя (GET /api/subscriptions/my/{id}/)
+```json
+{
+  "id": 1,
+  "subscription_name": "Premium",
+  "purchased_at": "2023-10-01T00:00:00Z",
+  "expires_at": "2023-10-31T00:00:00Z",
+  "status": "active",
+  "is_active": true
+}
+```
+
+### Элемент списка просмотра (GET /api/watchlists/{id}/)
+```json
+{
+  "id": 1,
+  "movie_title": "Inception",
+  "status": "want_to_watch",
+  "added_at": "2023-10-01T00:00:00Z"
+}
+```
 
 ## 3. Маппинг ошибок
-
-| Django HTTP Status | FastAPI HTTP Status | FastAPI Error Code   | Описание                                      |
-|--------------------|---------------------|----------------------|-----------------------------------------------|
-| 400 Bad Request    | 400                 | VALIDATION_ERROR     | Ошибка валидации входных данных               |
-| 401 Unauthorized   | 401                 | UNAUTHORIZED         | Токен отсутствует, просрочен или невалиден    |
-| 403 Forbidden      | 403                 | FORBIDDEN            | Недостаточно прав для выполнения операции     |
-| 404 Not Found      | 404                 | NOT_FOUND            | Ресурс не найден в Django                     |
-| 429 Too Many Requests | 429              | RATE_LIMITED         | Превышен лимит запросов                       |
-| 500 Server Error   | 502/503             | DJANGO_API_ERROR     | Внутренняя ошибка Django или недоступность    |
-
-Все ошибки в FastAPI возвращаются в едином формате, установленном в Спринте 2:
+Django возвращает ошибки через `custom_exception_handler` или стандартный DRF:
 ```json
-{
-  "detail": {
-    "code": "ERROR_CODE",
-    "message": "Человекочитаемое описание ошибки"
-  }
-}
+{"detail": "Человекочитаемое сообщение", "code": "ERROR_CODE"}
+```
+или
+```json
+{"detail": "Человекочитаемое сообщение"}
+```
+FastAPI нормализует все ответы к единому формату Спринта 2:
+```json
+{"detail": {"code": "ERROR_CODE", "message": "Человекочитаемое сообщение"}}
 ```
 
-## 4. Политика повторных попыток (Retry Policy)
-- Timeout: 5.0 секунд на один запрос (настраивается в .env)
-- Retries: 2 попытки при ошибках сети (ConnectionError, Timeout) или ответах 5xx
-- Backoff: Экспоненциальная задержка: 1s -> 2s
-- Circuit Breaker: После 5 последовательных ошибок - отключение вызова на 30 секунд, возврат клиенту 503 Service Unavailable
-- Идемпотентность: GET-запросы безопасны. POST/PUT/PATCH требуют заголовка X-Request-ID для отслеживания дублей и предотвращения повторной обработки
+Таблица соответствия статусов:
 
-## 5. Правила асинхронной безопасности (Async-Safety Rules)
+| Django Status | FastAPI Status | FastAPI Code       | Описание                          |
+|---------------|----------------|--------------------|-----------------------------------|
+| 400           | 400            | VALIDATION_ERROR   | Ошибка валидации/бизнес-правила   |
+| 401           | 401            | UNAUTHORIZED       | Токен невалиден/отсутствует       |
+| 403           | 403            | FORBIDDEN          | Недостаточно прав                 |
+| 404           | 404            | NOT_FOUND          | Ресурс не найден                  |
+| 409           | 409            | CONFLICT           | Нарушение уникальности/инварианта |
+| 500           | 503            | DJANGO_API_ERROR   | Внутренняя ошибка Django          |
 
+## 4. Аутентификация и авторизация
+- Клиент передаёт заголовок `Authorization: Token <drf_token_key>`
+- FastAPI проксирует запрос к `GET /api/accounts/me/` с тем же заголовком
+- При успехе (`200 OK`) извлекается payload пользователя и передаётся в контекст запроса
+- При `401` или `403` запрос прерывается с соответствующим кодом FastAPI.]
+- Swagger UI настроен на формат `Token <key>` (не Bearer)
+
+## 5. Политика повторных попыток (Retry Policy)
+- Timeout: 5.0 секунд на один запрос (настраивается в `.env`)
+- Retries: 2 попытки при ошибках сети (`httpx.RequestError`) или ответах `5xx`
+- Backoff: Экспоненциальная задержка: `1s -> 2s`
+- Circuit Breaker: После 5 последовательных ошибок - отключение вызова на 30 секунд, возврат клиенту `503 Service Unavailable`.
+- Идемпотентность: GET-запросы безопасны. POST/PUT/PATCH требуют заголовка `X-Request-ID` или `X-Idempotency-Key` для предотвращения дублирования операций на стороне Django
+
+## 6. Правила асинхронной безопасности (Async-Safety Rules)
 ЗАПРЕЩЕНО в async-контексте:
-- time.sleep() -> использовать await asyncio.sleep()
-- requests.get/post() -> использовать httpx.AsyncClient
-- Синхронные драйверы БД (psycopg2, mysqlclient) -> только asyncpg, aiomysql
-- Блокирующие вызовы ОС или тяжёлые CPU-вычисления без run_in_executor
-- Чтение/запись файлов синхронными методами внутри обработчиков запросов
+- `time.sleep()` > использовать `await asyncio.sleep()`
+- `requests.get/post()` -> использовать `httpx.AsyncClient`
+- Синхронные драйверы БД (`psycopg2`, `mysqlclient`) -> только `asyncpg`, `aiomysql`
+- Блокирующие вызовы ОС или тяжёлые CPU-вычисления без `run_in_executor`
+- Чтение/запись файлов синхронными методами внутри обработчиков
 
 РАЗРЕШЕНО:
-- await httpx.AsyncClient().request(...)
-- await session.execute(...) (Async SQLAlchemy)
-- BackgroundTasks для отложенных операций (запускаются строго после return ответа клиенту)
-- asyncio.gather() для параллельных независимых вызовов
-- aiofiles для асинхронной работы с файловой системой
+- `await httpx.AsyncClient().request(...)`
+- `await session.execute(...)` (Async SQLAlchemy)
+- `BackgroundTasks` для отложенных операций (запускаются строго после `return` ответа)
+- `asyncio.gather()` для параллельных независимых вызовов
+- `aiofiles` для асинхронной работы с файловой системой
 
-## 6. Контекст логирования
-Каждый лог межсервисного взаимодействия должен содержать структурированные поля:
+## 7. Контекст логирования
+Каждый лог межсервисного взаимодействия выводится в stdout в формате JSON и содержит:
 ```json
 {
   "request_id": "uuid-v4",
-  "trace_id": "optional-jaeger-id",
   "user_id": 123,
   "target_service": "django_core",
-  "endpoint": "GET /api/accounts/me/",
+  "endpoint": "GET /api/movies/456",
   "status_code": 200,
   "duration_ms": 145,
   "retry_count": 0,
-  "error": null
+  "error": null,
+  "timestamp": "2024-05-04T15:07:00Z"
 }
 ```
-Логи выводятся в stdout в формате JSON для последующего сбора системами мониторинга
 
-## 7. Версионирование API
-- Базовый путь бизнес-эндпоинтов: /api/v1/
-- Изменения, ломающие обратную совместимость -> новая мажорная версия (/api/v2/)
-- Инфраструктурные эндпоинты (/system/health, /system/ready) находятся вне версионирования
-- Заголовок Accept-Version опционален для клиентов, используется для канареечных развёртываний
-- Все изменения в контрактах DTO должны сопровождаться обновлением OpenAPI-спецификации и уведомлением команды интеграции
-
+## 8. Версионирование API
+- Базовый путь бизнес-эндпоинтов: `/api/v1/`
+- Инфраструктурные эндпоинты (`/system/health`, `/system/ready`) находятся вне версионирования
+- Изменения, ломающие обратную совместимость (удаление полей, смена типов, переименование путей) -> новая мажорная версия (`/api/v2/`)
+- Все DTO строго типизированы через Pydantic и синхронизированы с DRF serializers
+- Заголовок `Accept-Version` опционален для клиентов, используется для канареечных развёртываний
