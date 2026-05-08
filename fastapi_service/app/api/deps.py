@@ -1,7 +1,9 @@
 from fastapi import Depends, HTTPException, status, Header
 from app.core.config import settings
 import httpx
+from fastapi.security import OAuth2PasswordBearer
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 async def verify_django_token(authorization: str = Header(..., alias="Authorization")) -> dict:
     """Верифицирует токен через Django API. Ожидает формат: Token <key>"""
@@ -50,3 +52,29 @@ async def verify_django_token(authorization: str = Header(..., alias="Authorizat
 async def get_current_user(payload: dict = Depends(verify_django_token)) -> dict:
     """Возвращает данные пользователя после успешной верификации"""
     return payload
+
+
+
+async def get_current_user_jwt(token: str = Depends(oauth2_scheme)) -> dict:
+    """Получает пользователя из JWT токена (Bearer)"""
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "UNAUTHORIZED", "message": "Not authenticated"}
+        )
+    
+    from app.core.security import decode_token  # импорт внутри, чтобы не было цикла
+    payload = decode_token(token, expected_type="access")
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TOKEN", "message": "Token is invalid or expired"}
+        )
+    return {"id": payload.user_id, "username": payload.username}
+
+
+
+async def get_current_active_user(current_user: dict = Depends(get_current_user_jwt)) -> dict:
+    """Проверяет, что пользователь активен (заглушка для расширения)"""
+    # В реальности: запрос в Django на проверку is_active
+    return current_user
