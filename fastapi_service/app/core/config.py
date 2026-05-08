@@ -14,7 +14,13 @@ class Settings(BaseSettings):
     # Django Integration
     DJANGO_API_URL: str = Field(default="http://web:8000/api", alias="FASTAPI_DJANGO_API_URL")
     DJANGO_API_TIMEOUT: float = Field(default=5.0, alias="FASTAPI_DJANGO_API_TIMEOUT")
+    DJANGO_API_RETRIES: int = Field(default=2, alias="FASTAPI_DJANGO_API_RETRIES")
+    DJANGO_API_BACKOFF_BASE: float = Field(default=0.3, alias="FASTAPI_DJANGO_API_BACKOFF_BASE")
     DJANGO_VERIFY_ENDPOINT: str = "/accounts/me/"
+    DJANGO_RECOMMENDATIONS_ENDPOINT: str = "/movies/"
+
+    # Background tasks
+    NOTIFICATION_WEBHOOK_URL: str = Field(default="", alias="FASTAPI_NOTIFICATION_WEBHOOK_URL")
 
     # Database
     DATABASE_URL: str = Field(default="", alias="FASTAPI_DATABASE_URL")
