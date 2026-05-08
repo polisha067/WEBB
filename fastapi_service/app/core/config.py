@@ -6,9 +6,12 @@ from typing import List
 class Settings(BaseSettings):
     """Настройки приложения из переменных окружения"""
     APP_NAME: str = Field(default="FastAPI Core Service", alias="FASTAPI_APP_NAME")
-    DEBUG: bool = Field(default=False, alias="FASTAPI_DEBUG")
+
+    DEBUG: bool = Field(default=True, alias="FASTAPI_DEBUG")
+    
     LOG_LEVEL: str = Field(default="INFO", alias="FASTAPI_LOG_LEVEL")
     CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000"], alias="FASTAPI_CORS_ORIGINS")
+
     SECRET_KEY: str = Field(default="dev-secret", alias="FASTAPI_SECRET_KEY")
 
     # Интеграция с Django

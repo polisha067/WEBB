@@ -91,3 +91,18 @@ def me_view(request):
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+def verify_user(request):
+    """
+    Эндпоинт для проверки аутентификации пользователя.
+    Используется сервисом FastAPI для валидации Django-сессий/токенов.
+    """
+    if request.user.is_authenticated:
+        return JsonResponse({
+            "id": request.user.id,
+            "username": request.user.username,
+            "is_active": request.user.is_active
+        })
+    return JsonResponse({"detail": "Not authenticated"}, status=401)

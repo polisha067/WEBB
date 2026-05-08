@@ -1,70 +1,83 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+import httpx
+from app.core.config import settings
 from app.core.security import (
-    get_password_hash, create_access_token, create_refresh_token,
-    decode_token, verify_password
+    create_access_token, 
+    create_refresh_token,
+    ALGORITHM
 )
 from app.schemas.auth import (
-    UserCreate, LoginRequest, TokenResponse, RefreshRequest
+    UserCreate, LoginRequest, TokenResponse
 )
-from app.services.django_client import DjangoClient
+from jose import jwt, JWTError
 
 router = APIRouter()
 
-# В учебном проекте: "регистрация" = создание записи в Django через API
-# Реальное хранение паролей — в Django, здесь только прокси-логика
-
-
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_in: UserCreate):
-    """Регистрация нового пользователя (прокси в Django)"""
-    client = DjangoClient()
-    
-    # Проверяем, не занят ли username/email
-    try:
-        await client.request("GET", f"accounts/check/?username={user_in.username}")
-    except HTTPException:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "USER_EXISTS", "message": "Username already taken"}
-        )
-    
-    # В реальном проекте: отправка данных в Django для создания пользователя
-    # Здесь эмулируем успешную регистрацию
-    user_id = 1  # заглушка, в реальности — ответ от Django
-    
-    return TokenResponse(
-        access_token=create_access_token(user_id, user_in.username),
-        refresh_token=create_refresh_token(user_id, user_in.username)
-    )
-
+    """Регистрация нового пользователя через прокси в Django"""
+    async with httpx.AsyncClient(timeout=settings.DJANGO_API_TIMEOUT) as client:
+        try:
+            response = await client.post(
+                f"{settings.DJANGO_API_URL}/accounts/register/",
+                json=user_in.dict()
+            )
+            
+            if response.status_code != 201:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=response.json()
+                )
+            
+            user_data = response.json()
+            user_id = user_data.get("id")
+            
+            return TokenResponse(
+                access_token=create_access_token(subject=user_id),
+                refresh_token=create_refresh_token(subject=user_id)
+            )
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Django service unavailable")
 
 @router.post("/login", response_model=TokenResponse)
 async def login(credentials: LoginRequest):
-    """Вход: проверка через Django, возврат JWT"""
-    client = DjangoClient()
-    
-    # В реальности: запрос к Django на проверку пароля
-    # Здесь эмулируем успешный логин
-    user = {"id": 1, "username": credentials.username}  # заглушка
-    
-    return TokenResponse(
-        access_token=create_access_token(user["id"], user["username"]),
-        refresh_token=create_refresh_token(user["id"], user["username"])
-    )
-
+    """Вход: реальная проверка через Django и возврат JWT"""
+    async with httpx.AsyncClient(timeout=settings.DJANGO_API_TIMEOUT) as client:
+        try:
+            response = await client.post(
+                f"{settings.DJANGO_API_URL}/accounts/login/",
+                json={"username": credentials.username, "password": credentials.password}
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect username or password"
+                )
+            
+            user_data = response.json()
+            user_id = user_data.get("id")
+            
+            return TokenResponse(
+                access_token=create_access_token(subject=user_id),
+                refresh_token=create_refresh_token(subject=user_id)
+            )
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Django service unavailable")
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(request: RefreshRequest):
-    """Обновление access токена через refresh токен"""
-    payload = decode_token(request.refresh_token, expected_type="refresh")
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "INVALID_TOKEN", "message": "Refresh token is invalid or expired"}
+async def refresh_token(refresh_token: str):
+    """Обновление токенов с использованием rotation (выдача новой пары)"""
+    try:
+        payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+            
+        user_id = payload.get("sub")
+        
+        return TokenResponse(
+            access_token=create_access_token(subject=user_id),
+            refresh_token=create_refresh_token(subject=user_id)
         )
-    
-    # Rotation: новый refresh токен (опционально)
-    new_access = create_access_token(payload.user_id, payload.username)
-    new_refresh = create_refresh_token(payload.user_id, payload.username)
-    
-    return TokenResponse(access_token=new_access, refresh_token=new_refresh)
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")

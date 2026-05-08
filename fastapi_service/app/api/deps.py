@@ -2,6 +2,8 @@ from fastapi import Depends, HTTPException, status, Header
 from app.core.config import settings
 import httpx
 from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+from app.core.security import ALGORITHM
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
@@ -54,7 +56,6 @@ async def get_current_user(payload: dict = Depends(verify_django_token)) -> dict
     return payload
 
 
-
 async def get_current_user_jwt(token: str = Depends(oauth2_scheme)) -> dict:
     """Получает пользователя из JWT токена (Bearer)"""
     if not token:
@@ -63,15 +64,22 @@ async def get_current_user_jwt(token: str = Depends(oauth2_scheme)) -> dict:
             detail={"code": "UNAUTHORIZED", "message": "Not authenticated"}
         )
     
-    from app.core.security import decode_token  # импорт внутри, чтобы не было цикла
-    payload = decode_token(token, expected_type="access")
-    if not payload:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "INVALID_TOKEN", "message": "Token is not an access token"}
+            )
+            
+        return {"id": payload.get("sub"), "username": payload.get("username")}
+        
+    except (JWTError, Exception):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "INVALID_TOKEN", "message": "Token is invalid or expired"}
         )
-    return {"id": payload.user_id, "username": payload.username}
-
 
 
 async def get_current_active_user(current_user: dict = Depends(get_current_user_jwt)) -> dict:
