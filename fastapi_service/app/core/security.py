@@ -31,18 +31,18 @@ def create_token(data: dict, expires_delta: timedelta) -> str:
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
-def create_access_token(user_id: int, username: str) -> str:
+def create_access_token(user_id: int, username: str, django_token: str = "") -> str:
     """Создание access токена"""
     return create_token(
-        data={"sub": str(user_id), "username": username, "type": "access"},
+        data={"sub": str(user_id), "username": username, "type": "access", "django_token": django_token},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
 
-def create_refresh_token(user_id: int, username: str) -> str:
+def create_refresh_token(user_id: int, username: str, django_token: str = "") -> str:
     """Создание refresh токена"""
     return create_token(
-        data={"sub": str(user_id), "username": username, "type": "refresh"},
+        data={"sub": str(user_id), "username": username, "type": "refresh", "django_token": django_token},
         expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     )
 

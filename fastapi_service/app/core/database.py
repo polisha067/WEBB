@@ -4,13 +4,20 @@ from sqlalchemy import text
 from app.core.config import settings
 
 # Async движок SQLAlchemy 2.0
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10
-)
+if settings.DATABASE_URL.startswith("sqlite"):
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=settings.DEBUG,
+    )
+else:
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=settings.DEBUG,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10
+    )
+
 
 # Фабрика асинхронных сессий
 async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

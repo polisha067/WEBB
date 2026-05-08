@@ -1,5 +1,8 @@
+import json
 import logging
+import sys
 from contextlib import asynccontextmanager
+
 from sqlalchemy import text
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,10 +13,40 @@ from app.core.database import engine
 from app.middleware.request_id import RequestIDMiddleware
 from app.api import api_router
 
-logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL.upper()),
-                    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+
+# Простой JSON Formatter 
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_data = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "message": record.getMessage(),
+        }
+        
+        if hasattr(record, "request_id"):
+            log_data["request_id"] = record.request_id
+            log_data["duration_ms"] = record.duration_ms
+            log_data["url"] = record.url
+            log_data["method"] = record.method
+            log_data["status_code"] = record.status_code
+            
+        if record.exc_info:
+            log_data["error"] = self.formatException(record.exc_info)
+            
+        return json.dumps(log_data, ensure_ascii=False)
+
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(JSONFormatter())
+logging.basicConfig(
+    level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
+    handlers=[handler],
+    force=True,
+)
 logger = logging.getLogger(__name__)
 
+
+# Lifespan 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("FastAPI service starting...")
@@ -27,6 +60,14 @@ async def lifespan(app: FastAPI):
     logger.info("FastAPI service shutting down...")
     await engine.dispose()
 
+
+# OpenAPI tags 
+tags_metadata = [
+    {"name": "Auth", "description": "JWT регистрация / логин / refresh"},
+    {"name": "Protected", "description": "Защищённые эндпоинты (требуют токен)"},
+    {"name": "System", "description": "Health / Readiness checks"},
+]
+
 app = FastAPI(
     title=settings.APP_NAME,
     version="1.0.0",
@@ -34,7 +75,8 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
+    openapi_tags=tags_metadata,
 )
 
 @app.middleware("http")

@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Request
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user_jwt
 from app.schemas.protected import (
     ProfileResponse,
     ProgressReportAcceptedResponse,
@@ -28,12 +28,11 @@ def _protected_service() -> ProtectedService:
     summary="Get current profile",
 )
 async def profile(
-    current_user: dict = Depends(get_current_user),
-    authorization: str = Header(..., alias="Authorization"),
+    current_user: dict = Depends(get_current_user_jwt),
     service: ProtectedService = Depends(_protected_service),
 ) -> ProfileResponse:
-
-    user_profile = await service.get_profile(authorization=authorization)
+    django_token = f"Token {current_user.get('django_token')}"
+    user_profile = await service.get_profile(authorization=django_token)
     return ProfileResponse(
         id=user_profile.get("id", current_user.get("id")),
         username=user_profile.get("username", current_user.get("username", "")),
@@ -47,13 +46,12 @@ async def profile(
     summary="Get async recommendations",
 )
 async def recommendations(
-    _: dict = Depends(get_current_user),
-    authorization: str = Header(..., alias="Authorization"),
+    current_user: dict = Depends(get_current_user_jwt),
     limit: int = Query(default=5, ge=1, le=20),
     service: ProtectedService = Depends(_protected_service),
 ) -> RecommendationsResponse:
-
-    data = await service.get_recommendations(authorization=authorization, limit=limit)
+    django_token = f"Token {current_user.get('django_token')}"
+    data = await service.get_recommendations(authorization=django_token, limit=limit)
     items = [RecommendationItem(**item) for item in data if item.get("id") is not None]
     return RecommendationsResponse(recommendations=items)
 
@@ -68,7 +66,7 @@ async def queue_progress_report(
     body: ProgressReportRequest,
     background_tasks: BackgroundTasks,
     request: Request,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_jwt),
 ) -> ProgressReportAcceptedResponse:
 
     request_id = getattr(request.state, "request_id", str(uuid.uuid4()))

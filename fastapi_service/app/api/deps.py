@@ -73,7 +73,7 @@ async def get_current_user_jwt(token: str = Depends(oauth2_scheme)) -> dict:
                 detail={"code": "INVALID_TOKEN", "message": "Token is not an access token"}
             )
             
-        return {"id": payload.get("sub"), "username": payload.get("username")}
+        return {"id": payload.get("sub"), "username": payload.get("username"), "django_token": payload.get("django_token", "")}
         
     except (JWTError, Exception):
         raise HTTPException(

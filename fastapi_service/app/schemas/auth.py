@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, Field, EmailStr, field_validator, model_validator
 
 
 class UserCreate(BaseModel):
@@ -6,6 +6,13 @@ class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, examples=["new_user"])
     email: EmailStr = Field(..., examples=["user@example.com"])
     password: str = Field(..., min_length=8, examples=["StrongPass123!"])
+    password_confirm: str = Field(..., min_length=8, examples=["StrongPass123!"])
+
+    @model_validator(mode="after")
+    def check_passwords_match(self):
+        if self.password != self.password_confirm:
+            raise ValueError("Passwords do not match")
+        return self
 
     @field_validator("password")
     @classmethod
@@ -45,7 +52,7 @@ class RefreshRequest(BaseModel):
 
 class TokenPayload(BaseModel):
     """Полезная нагрузка JWT"""
-    user_id: int
+    sub: str
     username: str
     exp: int
     type: str  # "access" или "refresh"
