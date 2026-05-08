@@ -1,11 +1,14 @@
 # Cinema Project
 
-Django REST API для кинотеатра - второй спринт
+Django REST API + FastAPI (Microservice) - Третий спринт
 
-- Сервисный слой на каждое приложение
-- Доменные исключения с маппингом на HTTP-статусы
-- Кастомные permissions
-- Покрытие тестами ключевой бизнес-логики
+- **Спринт 2**: Сервисный слой, кастомные exceptions, permissions, тесты на Django
+- **Спринт 3**: FastAPI в роли API-шлюза (BFF) поверх Django
+- Асинхронное проксирование запросов к монолиту с Retry-логикой
+- Гибридная аутентификация: FastAPI JWT (Bearer) + Django Token
+- Фоновые задачи (Background Tasks) для тяжелых операций
+- Единый формат ошибок (JSON)
+- Покрытие тестами (Pytest, HTTPX, Mocking)
 
 ## Быстрый старт
 
@@ -28,9 +31,10 @@ docker-compose exec web python manage.py createsuperuser
 
 | Ресурс | URL |
 |---|---|
-| **Веб-сайт** | `http://localhost:8000/` |
-| **Админка** | `http://localhost:8000/admin/` |
-| **Swagger (API docs)** | `http://localhost:8000/api/docs/` |
+| **Веб-сайт (Django SSR)** | `http://localhost:8000/` |
+| **Админка (Django)** | `http://localhost:8000/admin/` |
+| **FastAPI Swagger (API docs)** | `http://localhost:8001/docs` |
+| **Django Swagger (Internal)** | `http://localhost:8000/api/docs/` |
 
 ## Технологии
 
@@ -61,10 +65,17 @@ docker-compose exec web python manage.py createsuperuser
 
 ---
 
-## Структура проекта (второй спринт)
+## Структура проекта (третий спринт)
 
 ```
 project/
+├── fastapi_service/     # FastAPI API-шлюз (JWT, Proxy, Background Tasks)
+│   ├── app/
+│   │   ├── api/         # Роутеры (auth, protected, health)
+│   │   ├── core/        # Безопасность, БД, Конфиг
+│   │   ├── schemas/     # Pydantic схемы
+│   │   └── services/    # Асинхронные HTTP клиенты к Django
+│   └── tests/           # Pytest тесты
 ├── accounts/            # регистрация, вход, выход, me
 │   ├── services.py      # AccountService
 │   ├── exceptions.py    # (использует core.exceptions)
@@ -132,7 +143,36 @@ project/
 
 ---
 
-## API Документация
+## API Документация (FastAPI - Спринт 3)
+
+Базовый URL: `http://localhost:8001/api/v1/`
+
+### Аутентификация (`/auth/`)
+| Метод | URL | Описание | Доступ |
+|---|---|---|---|
+| POST | `/auth/register` | Регистрация (прокси в Django) | Все |
+| POST | `/auth/login` | Вход и получение JWT | Все |
+| POST | `/auth/refresh` | Обновление JWT токенов | Все |
+
+### Защищенные роуты (`/protected/`)
+*Требуют заголовок `Authorization: Bearer <access_token>`*
+
+| Метод | URL | Описание | Доступ |
+|---|---|---|---|
+| GET | `/protected/profile` | Получить профиль пользователя | Auth |
+| GET | `/protected/recommendations` | Получить рекомендации фильмов | Auth |
+| POST | `/protected/progress/report` | Запуск фоновой задачи отчета | Auth |
+
+### Системные (`/system/`)
+| Метод | URL | Описание | Доступ |
+|---|---|---|---|
+| GET | `/ping` | Быстрый ответ сервиса | Все |
+| GET | `/system/health` | Проверка БД | Все |
+| GET | `/system/ready` | Проверка связи с Django | Все |
+
+---
+
+## API Документация (Django - Внутренняя логика)
 
 Базовый URL: `http://localhost:8000/api/`
 
