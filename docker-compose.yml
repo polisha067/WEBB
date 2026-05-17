@@ -78,10 +78,52 @@ services:
     networks:
       - cinema_network
 
+  ugc_db:
+    image: postgres:15-alpine
+    container_name: cinema_ugc_db
+    volumes:
+      - ugc_postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ugc_db
+      POSTGRES_USER: ugc_user
+      POSTGRES_PASSWORD: ugc_pass
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ugc_user -d ugc_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cinema_network
+
+  ugc_service:
+    build:
+      context: ./ugc_service
+      dockerfile: Dockerfile
+    container_name: ugc_service
+    ports:
+      - "5001:5001"
+    depends_on:
+      ugc_db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://ugc_user:ugc_pass@ugc_db:5432/ugc_db
+      - DJANGO_API_URL=http://web:8000/api
+    volumes:
+      - ./ugc_service:/app
+    command: python run.py
+    networks:
+      - cinema_network
+
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+  ugc_postgres_data:
 
 networks:
   cinema_network:

@@ -1,0 +1,200 @@
+swagger: "2.0"
+info:
+  title: UGC Service API - Moderation
+  description: API для модерации пользовательского контента
+  version: "1.0.0"
+basePath: /api/v1/moderation
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  TokenAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: "Введите токен в формате: Token <ваш_токен>"
+
+security:
+  - TokenAuth: []
+
+tags:
+  - name: Moderation
+    description: Модерация контента
+
+paths:
+  /reviews/pending/:
+    get:
+      summary: Получить отзывы на модерации
+      tags: [Moderation]
+      description: Возвращает отзывы со статусом 'pending' с пагинацией
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          default: 1
+          minimum: 1
+        - name: per_page
+          in: query
+          type: integer
+          default: 20
+          maximum: 100
+      responses:
+        200:
+          description: Успешный список
+          schema:
+            type: object
+            properties:
+              count: { type: integer }
+              page: { type: integer }
+              per_page: { type: integer }
+              pages: { type: integer }
+              next: { type: integer }
+              prev: { type: integer }
+              results:
+                type: array
+                items: { $ref: '#/definitions/Review' }
+        401: { $ref: '#/responses/Unauthorized' }
+        403: { $ref: '#/responses/Forbidden' }
+
+  /reviews/{review_id}/moderate/:
+    patch:
+      summary: Модерировать отзыв
+      tags: [Moderation]
+      parameters:
+        - name: review_id
+          in: path
+          type: integer
+          required: true
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required: [status]
+            properties:
+              status:
+                type: string
+                enum: [active, hidden]
+      responses:
+        200:
+          description: Статус обновлён
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              review: { $ref: '#/definitions/Review' }
+        400: { $ref: '#/responses/BadRequest' }
+        401: { $ref: '#/responses/Unauthorized' }
+        403: { $ref: '#/responses/Forbidden' }
+        404: { $ref: '#/responses/NotFound' }
+
+  /comments/pending/:
+    get:
+      summary: Получить комментарии на модерации
+      tags: [Moderation]
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          default: 1
+        - name: per_page
+          in: query
+          type: integer
+          default: 20
+      responses:
+        200:
+          description: Успешный список
+          schema:
+            type: object
+            properties:
+              count: { type: integer }
+              results: { type: array, items: { $ref: '#/definitions/Comment' } }
+        401: { $ref: '#/responses/Unauthorized' }
+        403: { $ref: '#/responses/Forbidden' }
+
+  /comments/{comment_id}/moderate/:
+    patch:
+      summary: Модерировать комментарий
+      tags: [Moderation]
+      parameters:
+        - name: comment_id
+          in: path
+          type: integer
+          required: true
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required: [status]
+            properties:
+              status:
+                type: string
+                enum: [active, hidden]
+      responses:
+        200:
+          description: Статус обновлён
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              comment: { $ref: '#/definitions/Comment' }
+        400: { $ref: '#/responses/BadRequest' }
+        401: { $ref: '#/responses/Unauthorized' }
+        403: { $ref: '#/responses/Forbidden' }
+        404: { $ref: '#/responses/NotFound' }
+
+definitions:
+  Review:
+    type: object
+    properties:
+      id: { type: integer }
+      user_id: { type: integer }
+      movie_id: { type: integer }
+      rating: { type: integer, minimum: 1, maximum: 10 }
+      text: { type: string }
+      status: { type: string, enum: [pending, active, hidden] }
+      created_at: { type: string, format: date-time }
+  Comment:
+    type: object
+    properties:
+      id: { type: integer }
+      user_id: { type: integer }
+      movie_id: { type: integer }
+      parent_id: { type: integer }
+      text: { type: string }
+      status: { type: string, enum: [pending, active, hidden] }
+      created_at: { type: string, format: date-time }
+
+responses:
+  Unauthorized:
+    description: Токен невалиден
+    schema:
+      type: object
+      properties:
+        error: { type: object }
+  Forbidden:
+    description: Нет прав администратора
+    schema:
+      type: object
+      properties:
+        error: { type: object }
+  BadRequest:
+    description: Ошибка валидации
+    schema:
+      type: object
+      properties:
+        error: { type: object }
+  NotFound:
+    description: Ресурс не найден
+    schema:
+      type: object
+      properties:
+        error: { type: object }

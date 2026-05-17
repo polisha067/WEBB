@@ -97,12 +97,13 @@ from django.contrib.auth.decorators import login_required
 def verify_user(request):
     """
     Эндпоинт для проверки аутентификации пользователя.
-    Используется сервисом FastAPI для валидации Django-сессий/токенов.
+    Используется сервисом FastAPI и UGC-сервисом для валидации Django-сессий/токенов.
     """
     if request.user.is_authenticated:
         return JsonResponse({
             "id": request.user.id,
             "username": request.user.username,
-            "is_active": request.user.is_active
+            "is_active": request.user.is_active,
+            "can_moderate": request.user.is_staff or request.user.is_superuser
         })
     return JsonResponse({"detail": "Not authenticated"}, status=401)
