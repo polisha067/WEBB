@@ -79,7 +79,9 @@ def create_app(config_name=None):
 
     # Регистрация blueprint'ов
     from .routes.moderation import moderation_bp
+    from .routes.rating import rating_bp
     app.register_blueprint(moderation_bp, url_prefix='/api/v1/moderation')
+    app.register_blueprint(rating_bp, url_prefix='/api/v1/ratings')
 
     # Логирование (опционально)
     if not app.debug:
