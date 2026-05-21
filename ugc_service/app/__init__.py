@@ -81,9 +81,11 @@ def create_app(config_name=None):
     from .routes.moderation import moderation_bp
     from .routes.rating import rating_bp
     from .routes.reviews import reviews_bp
+    from .routes.comments import comments_bp
     app.register_blueprint(moderation_bp, url_prefix='/api/v1/moderation')
     app.register_blueprint(rating_bp, url_prefix='/api/v1/ratings')
     app.register_blueprint(reviews_bp, url_prefix='/api/v1/reviews')
+    app.register_blueprint(comments_bp, url_prefix='/api/v1/comments')
 
     # Логирование (опционально)
     if not app.debug:
