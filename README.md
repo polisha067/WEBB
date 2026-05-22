@@ -4,11 +4,15 @@ Django REST API + FastAPI (Microservice) - Третий спринт
 
 - **Спринт 2**: Сервисный слой, кастомные exceptions, permissions, тесты на Django
 - **Спринт 3**: FastAPI в роли API-шлюза (BFF) поверх Django
-- Асинхронное проксирование запросов к монолиту с Retry-логикой
-- Гибридная аутентификация: FastAPI JWT (Bearer) + Django Token
-- Фоновые задачи (Background Tasks) для тяжелых операций
-- Единый формат ошибок (JSON)
-- Покрытие тестами (Pytest, HTTPX, Mocking)
+  - Асинхронное проксирование запросов к монолиту с Retry-логикой
+  - Гибридная аутентификация: FastAPI JWT (Bearer) + Django Token
+  - Фоновые задачи (Background Tasks) для тяжелых операций
+  - Единый формат ошибок (JSON)
+  - Покрытие тестами (Pytest, HTTPX, Mocking)
+- **Спринт 4**: UGC-микросервис на Flask (Отзывы, Комментарии, Рейтинги)
+  - Независимая БД PostgreSQL 15 (`ugc_db`)
+  - Интеграция с основным монолитом (Django API) для проверки авторизации и фильмов
+  - Swagger UI и полная изоляция домена пользовательского контента
 
 ## Быстрый старт
 
@@ -35,6 +39,7 @@ docker-compose exec web python manage.py createsuperuser
 | **Админка (Django)** | `http://localhost:8000/admin/` |
 | **FastAPI Swagger (API docs)** | `http://localhost:8001/docs` |
 | **Django Swagger (Internal)** | `http://localhost:8000/api/docs/` |
+| **UGC Swagger (Flask)** | `http://localhost:5001/apidocs/` |
 
 ## Технологии
 
@@ -76,6 +81,13 @@ project/
 │   │   ├── schemas/     # Pydantic схемы
 │   │   └── services/    # Асинхронные HTTP клиенты к Django
 │   └── tests/           # Pytest тесты
+├── ugc_service/         # Flask UGC Микросервис (Отзывы, Комменты, Рейтинги)
+│   ├── app/
+│   │   ├── models/      # SQLAlchemy модели
+│   │   ├── routes/      # Blueprint-ы API
+│   │   ├── schemas/     # Marshmallow / Pydantic схемы
+│   │   └── middleware.py # Проверка токенов через Django
+│   └── tests/           # Pytest (интеграционные)
 ├── accounts/            # регистрация, вход, выход, me
 │   ├── services.py      # AccountService
 │   ├── exceptions.py    # (использует core.exceptions)
@@ -169,6 +181,44 @@ project/
 | GET | `/ping` | Быстрый ответ сервиса | Все |
 | GET | `/system/health` | Проверка БД | Все |
 | GET | `/system/ready` | Проверка связи с Django | Все |
+
+---
+
+## API Документация (Flask UGC Микросервис - Спринт 4)
+
+Базовый URL: `http://localhost:5001/api/v1/`
+
+### Отзывы (`/reviews/`)
+| Метод | URL | Описание | Доступ |
+|---|---|---|---|
+| GET | `/reviews/?movie_id={id}` | Получить отзывы к фильму | Все |
+| GET | `/reviews/{id}/` | Детали отзыва | Все |
+| POST | `/reviews/` | Создать отзыв | Auth |
+| PATCH | `/reviews/{id}/` | Редактировать отзыв | Автор |
+| DELETE| `/reviews/{id}/` | Удалить отзыв | Автор/Модератор |
+
+### Комментарии (`/comments/`)
+| Метод | URL | Описание | Доступ |
+|---|---|---|---|
+| GET | `/comments/?movie_id={id}` | Получить дерево комментариев | Все |
+| POST | `/comments/` | Создать комментарий (или ответ) | Auth |
+| PATCH | `/comments/{id}/` | Редактировать комментарий | Автор |
+| DELETE| `/comments/{id}/` | Удалить комментарий | Автор/Модератор |
+
+### Рейтинги (`/ratings/`)
+| Метод | URL | Описание | Доступ |
+|---|---|---|---|
+| GET | `/ratings/average/?movie_id={id}` | Средний рейтинг фильма | Все |
+| GET | `/ratings/?movie_id={id}` | Все оценки фильма | Все |
+| POST | `/ratings/` | Поставить/Обновить оценку (Upsert) | Auth |
+
+### Модерация (`/moderation/`)
+| Метод | URL | Описание | Доступ |
+|---|---|---|---|
+| GET | `/moderation/reviews/pending/` | Отзывы ожидающие проверки | Admin |
+| PATCH | `/moderation/reviews/{id}/moderate/` | Одобрить/отклонить отзыв | Admin |
+| GET | `/moderation/comments/pending/` | Комментарии на проверку | Admin |
+| PATCH | `/moderation/comments/{id}/moderate/`| Одобрить/отклонить коммент| Admin |
 
 ---
 

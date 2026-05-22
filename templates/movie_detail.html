@@ -36,6 +36,40 @@
   </div>
 </section>
 
+<section class="ugc-section" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+  <h2>Отзывы зрителей</h2>
+  
+  <div id="ugcRatingContainer" style="margin-bottom: 20px;">
+    <strong>Средняя оценка (пользователи):</strong> <span id="ugcAverageRating">Загрузка...</span>
+  </div>
+
+  {% if request.user.is_authenticated %}
+    <div class="review-form" style="margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 8px;">
+      <h3>Написать отзыв</h3>
+      <form id="reviewForm" onsubmit="submitReview(event)">
+        <div style="margin-bottom: 10px;">
+          <label>Оценка (1-10):</label>
+          <input type="number" id="reviewRating" min="1" max="10" required style="width: 60px;">
+        </div>
+        <div style="margin-bottom: 10px;">
+          <label>Текст отзыва:</label><br>
+          <textarea id="reviewText" rows="3" style="width: 100%;" required minlength="10" maxlength="5000"></textarea>
+        </div>
+        <button type="submit" id="submitReviewBtn">Отправить</button>
+      </form>
+    </div>
+  {% else %}
+    <p style="margin-bottom: 20px; color: var(--text-muted);">
+      <a href="/login/">Войдите</a>, чтобы оставить отзыв.
+    </p>
+  {% endif %}
+
+  <div id="reviewsList">
+    <p>Загрузка отзывов...</p>
+  </div>
+</section>
+
+
 {% if request.user.is_authenticated %}
 <script>
   const movieId = {{ movie.id }};
@@ -105,4 +139,102 @@
   document.addEventListener('DOMContentLoaded', initButton);
 </script>
 {% endif %}
+
+<script>
+  const UGC_BASE_URL = 'http://localhost:5001/api/v1';
+  const authToken = '{{ auth_token|default:"" }}';
+  const currentMovieId = {{ movie.id }};
+
+  async function loadUGCData() {
+    // Загрузка среднего рейтинга
+    try {
+      const ratingRes = await fetch(`${UGC_BASE_URL}/ratings/average/?movie_id=${currentMovieId}`);
+      if (ratingRes.ok) {
+        const ratingData = await ratingRes.json();
+        document.getElementById('ugcAverageRating').innerText = 
+          ratingData.total_votes > 0 ? `${ratingData.average_score} / 10 (Голосов: ${ratingData.total_votes})` : 'Пока нет оценок';
+      }
+    } catch (e) {
+      console.error('Ошибка загрузки рейтинга', e);
+      document.getElementById('ugcAverageRating').innerText = 'Ошибка загрузки';
+    }
+
+    // Загрузка отзывов
+    try {
+      const reviewsRes = await fetch(`${UGC_BASE_URL}/reviews/?movie_id=${currentMovieId}`);
+      const reviewsContainer = document.getElementById('reviewsList');
+      if (reviewsRes.ok) {
+        const reviews = await reviewsRes.json();
+        if (reviews.length === 0) {
+          reviewsContainer.innerHTML = '<p>Пока нет отзывов. Будьте первым!</p>';
+        } else {
+          reviewsContainer.innerHTML = reviews.map(r => `
+            <div class="review-item" style="border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px;">
+              <strong>Пользователь ID: ${r.user_id}</strong> <span style="color: #f39c12;">★ ${r.rating}/10</span>
+              <p style="margin-top: 5px;">${r.text}</p>
+              <small style="color: #888;">${new Date(r.created_at).toLocaleString()}</small>
+            </div>
+          `).join('');
+        }
+      } else {
+        reviewsContainer.innerHTML = '<p>Не удалось загрузить отзывы.</p>';
+      }
+    } catch (e) {
+      console.error('Ошибка загрузки отзывов', e);
+      document.getElementById('reviewsList').innerHTML = '<p>Ошибка подключения к сервису UGC.</p>';
+    }
+  }
+
+  async function submitReview(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitReviewBtn');
+    btn.disabled = true;
+    
+    const rating = parseInt(document.getElementById('reviewRating').value);
+    const text = document.getElementById('reviewText').value;
+
+    try {
+      const res = await fetch(`${UGC_BASE_URL}/reviews/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Token ${authToken}` : ''
+        },
+        body: JSON.stringify({
+          movie_id: currentMovieId,
+          rating: rating,
+          text: text,
+          status: 'active'
+        })
+      });
+
+      if (res.ok) {
+        alert('Отзыв успешно добавлен!');
+        document.getElementById('reviewForm').reset();
+        loadUGCData(); // Перезагружаем список
+        
+        // Так как мы оставили отзыв, давайте также обновим рейтинг (Upsert)
+        await fetch(`${UGC_BASE_URL}/ratings/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Token ${authToken}`
+          },
+          body: JSON.stringify({ movie_id: currentMovieId, score: rating })
+        });
+        loadUGCData();
+        
+      } else {
+        const err = await res.json();
+        alert('Ошибка добавления отзыва: ' + JSON.stringify(err));
+      }
+    } catch (e) {
+      alert('Ошибка соединения с сервисом UGC');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadUGCData);
+</script>
 {% endblock %}

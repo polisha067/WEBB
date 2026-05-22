@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from movies.models import Movie
 from subscriptions.models import Subscription
 from watchlist.models import Watchlist
+from rest_framework.authtoken.models import Token
 
 
 def home(request):
@@ -27,9 +28,15 @@ def subscription_detail(request, subscription_id):
 def movie_detail(request, movie_id):
     movie = get_object_or_404(Movie, id=movie_id)
     in_watchlist = Watchlist.objects.filter(user=request.user, movie=movie).first() if request.user.is_authenticated else None
+    
+    token = None
+    if request.user.is_authenticated:
+        token, _ = Token.objects.get_or_create(user=request.user)
+
     context = {
         'movie': movie,
         'in_watchlist': in_watchlist,
+        'auth_token': token.key if token else None,
     }
     return render(request, 'movie_detail.html', context)
 
