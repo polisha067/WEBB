@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Create .env file for CI
       run: |
@@ -36,30 +36,30 @@ jobs:
 
     - name: Build and Start Docker Compose
       run: |
-        docker-compose up -d --build
+        docker compose up -d --build
 
     - name: Check running containers
       run: |
-        docker-compose ps
+        docker compose ps
         
     - name: Run Django Tests
       run: |
-        docker-compose exec -T web python manage.py test
+        docker compose exec -T web python manage.py test
         
     - name: Run FastAPI Tests
       run: |
-        docker-compose exec -T fastapi_service pytest
+        docker compose exec -T fastapi_service pytest
 
     - name: Run Flask UGC Tests
       run: |
-        docker-compose exec -T ugc_service pytest
+        docker compose exec -T ugc_service pytest
 
     - name: Show logs if failure
       if: failure()
       run: |
-        docker-compose logs
+        docker compose logs
 
     - name: Stop and Remove Containers
       if: always()
       run: |
-        docker-compose down -v
+        docker compose down -v
