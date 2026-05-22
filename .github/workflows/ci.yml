@@ -29,7 +29,7 @@ jobs:
         FASTAPI_LOG_LEVEL=info
         FASTAPI_CORS_ORIGINS='["*"]'
         FASTAPI_SECRET_KEY=fastapi_secret
-        FASTAPI_DATABASE_URL=postgresql://postgres:postgres@db:5432/cinema_db
+        FASTAPI_DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/cinema_db
         FASTAPI_DJANGO_API_URL=http://web:8000/api
         FASTAPI_DJANGO_API_TIMEOUT=5.0
         EOF
