@@ -27,7 +27,7 @@ jobs:
         FASTAPI_APP_NAME=Cinema API Gateway
         FASTAPI_DEBUG=True
         FASTAPI_LOG_LEVEL=info
-        FASTAPI_CORS_ORIGINS=*
+        FASTAPI_CORS_ORIGINS='["*"]'
         FASTAPI_SECRET_KEY=fastapi_secret
         FASTAPI_DATABASE_URL=postgresql://postgres:postgres@db:5432/cinema_db
         FASTAPI_DJANGO_API_URL=http://web:8000/api
