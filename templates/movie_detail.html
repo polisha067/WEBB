@@ -19,7 +19,11 @@
 
   <div class="movie-info">
     <h1>{{ movie.title }}</h1>
-    <p class="meta">{{ movie.release_year }} • {{ movie.duration }} мин • ★ {{ movie.rating }}</p>
+    <p class="meta">
+      {{ movie.release_year }} • {{ movie.duration }} мин • 
+      <span title="Официальный рейтинг">★ {{ movie.rating }}</span>
+      <span id="topUgcAverageRating" style="margin-left: 15px; color: var(--primary-red); font-weight: bold;" title="Пользовательский рейтинг"></span>
+    </p>
     <p class="description">{{ movie.description }}</p>
     
     {% if request.user.is_authenticated %}
@@ -151,8 +155,16 @@
       const ratingRes = await fetch(`${UGC_BASE_URL}/ratings/average/?movie_id=${currentMovieId}`);
       if (ratingRes.ok) {
         const ratingData = await ratingRes.json();
+        const hasVotes = ratingData.total_votes > 0;
+        
         document.getElementById('ugcAverageRating').innerText = 
-          ratingData.total_votes > 0 ? `${ratingData.average_score} / 10 (Голосов: ${ratingData.total_votes})` : 'Пока нет оценок';
+          hasVotes ? `${ratingData.average_score} / 10 (Голосов: ${ratingData.total_votes})` : 'Пока нет оценок';
+          
+        if (hasVotes) {
+          document.getElementById('topUgcAverageRating').innerText = `|  ★ ${ratingData.average_score} (Зрители)`;
+        } else {
+          document.getElementById('topUgcAverageRating').innerText = '';
+        }
       }
     } catch (e) {
       console.error('Ошибка загрузки рейтинга', e);

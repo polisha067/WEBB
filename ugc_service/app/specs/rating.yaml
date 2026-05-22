@@ -1,0 +1,68 @@
+swagger: "2.0"
+info:
+  title: UGC Service API - Ratings
+  description: API для оценок фильмов
+  version: "1.0.0"
+basePath: /api/v1/ratings
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  TokenAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: "Введите токен в формате: Token <ваш_токен>"
+
+tags:
+  - name: Ratings
+    description: Оценки пользователей
+
+paths:
+  /:
+    get:
+      summary: Получить оценки фильма
+      tags: [Ratings]
+      parameters:
+        - name: movie_id
+          in: query
+          type: integer
+          required: true
+      responses:
+        200:
+          description: Список оценок
+    post:
+      summary: Поставить или обновить оценку (Upsert)
+      tags: [Ratings]
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required: [movie_id, score]
+            properties:
+              movie_id: { type: integer }
+              score: { type: integer, minimum: 1, maximum: 10 }
+      responses:
+        200:
+          description: Оценка сохранена
+  /average/:
+    get:
+      summary: Средний рейтинг фильма
+      tags: [Ratings]
+      parameters:
+        - name: movie_id
+          in: query
+          type: integer
+          required: true
+      responses:
+        200:
+          description: Средняя оценка и кол-во голосов

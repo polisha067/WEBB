@@ -1,0 +1,92 @@
+swagger: "2.0"
+info:
+  title: UGC Service API - Comments
+  description: API для комментариев
+  version: "1.0.0"
+basePath: /api/v1/comments
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  TokenAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: "Введите токен в формате: Token <ваш_токен>"
+
+tags:
+  - name: Comments
+    description: Комментарии к фильмам
+
+paths:
+  /:
+    get:
+      summary: Получить комментарии к фильму
+      tags: [Comments]
+      parameters:
+        - name: movie_id
+          in: query
+          type: integer
+          required: true
+      responses:
+        200:
+          description: Дерево комментариев
+    post:
+      summary: Создать комментарий (или ответ)
+      tags: [Comments]
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required: [movie_id, text]
+            properties:
+              movie_id: { type: integer }
+              parent_id: { type: integer }
+              text: { type: string }
+              status: { type: string, default: active }
+      responses:
+        201:
+          description: Комментарий создан
+  /{comment_id}/:
+    patch:
+      summary: Обновить комментарий (только автор)
+      tags: [Comments]
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: comment_id
+          in: path
+          type: integer
+          required: true
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              text: { type: string }
+      responses:
+        200:
+          description: Комментарий обновлён
+    delete:
+      summary: Удалить комментарий (автор или модератор)
+      tags: [Comments]
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: comment_id
+          in: path
+          type: integer
+          required: true
+      responses:
+        200:
+          description: Комментарий удалён

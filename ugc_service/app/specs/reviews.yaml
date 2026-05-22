@@ -1,0 +1,114 @@
+swagger: "2.0"
+info:
+  title: UGC Service API - Reviews
+  description: API для отзывов к фильмам
+  version: "1.0.0"
+basePath: /api/v1/reviews
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  TokenAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: "Введите токен в формате: Token <ваш_токен>"
+
+tags:
+  - name: Reviews
+    description: Отзывы к фильмам
+
+paths:
+  /:
+    get:
+      summary: Получить отзывы к фильму
+      tags: [Reviews]
+      parameters:
+        - name: movie_id
+          in: query
+          type: integer
+          required: true
+      responses:
+        200:
+          description: Успешный список отзывов
+    post:
+      summary: Создать отзыв
+      tags: [Reviews]
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required: [movie_id, rating, text]
+            properties:
+              movie_id: { type: integer }
+              rating: { type: integer, minimum: 1, maximum: 10 }
+              text: { type: string }
+              status: { type: string, default: active }
+      responses:
+        201:
+          description: Отзыв создан
+  /{review_id}/:
+    get:
+      summary: Получить отзыв по ID
+      tags: [Reviews]
+      parameters:
+        - name: review_id
+          in: path
+          type: integer
+          required: true
+      responses:
+        200:
+          description: Данные отзыва
+        404:
+          description: Отзыв не найден
+    patch:
+      summary: Обновить отзыв (только автор)
+      tags: [Reviews]
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: review_id
+          in: path
+          type: integer
+          required: true
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              rating: { type: integer, minimum: 1, maximum: 10 }
+              text: { type: string }
+      responses:
+        200:
+          description: Отзыв обновлён
+        403:
+          description: Нет прав
+        404:
+          description: Не найден
+    delete:
+      summary: Удалить отзыв (автор или модератор)
+      tags: [Reviews]
+      security:
+        - TokenAuth: []
+      parameters:
+        - name: review_id
+          in: path
+          type: integer
+          required: true
+      responses:
+        200:
+          description: Отзыв удалён
+        403:
+          description: Нет прав
+        404:
+          description: Не найден

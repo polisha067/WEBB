@@ -14,7 +14,7 @@ class TestProtectedEndpoints:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_progress_report_request(self, async_client, auth_headers):
+    async def test_progress_report_request(self, async_client, jwt_bearer_headers):
         """POST /protected/progress/report: валидный запрос"""
         respx.get(f"{DJANGO_BASE}/accounts/me/").mock(
             return_value=Response(200, json={"id": 1, "username": "test", "email": "t@e.com"})
@@ -22,7 +22,7 @@ class TestProtectedEndpoints:
 
         response = await async_client.post(
             "/api/v1/protected/progress/report",
-            headers=auth_headers,
+            headers=jwt_bearer_headers,
             json={
                 "period_days": 14,
                 "include_recommendations": True
@@ -38,7 +38,7 @@ class TestProtectedEndpoints:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_progress_report_validation(self, async_client, auth_headers):
+    async def test_progress_report_validation(self, async_client, jwt_bearer_headers):
         """POST /protected/progress/report: невалидные данные"""
         respx.get(f"{DJANGO_BASE}/accounts/me/").mock(
             return_value=Response(200, json={"id": 1, "username": "test", "email": "t@e.com"})
@@ -46,7 +46,7 @@ class TestProtectedEndpoints:
 
         response = await async_client.post(
             "/api/v1/protected/progress/report",
-            headers=auth_headers,
+            headers=jwt_bearer_headers,
             json={
                 "period_days": 200,  # > 90, не пройдёт валидацию
                 "include_recommendations": "yes"  # должен быть bool

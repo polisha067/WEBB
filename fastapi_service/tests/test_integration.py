@@ -13,7 +13,7 @@ class TestDjangoIntegration:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_protected_profile_success(self, async_client, auth_headers):
+    async def test_protected_profile_success(self, async_client, jwt_bearer_headers):
         """GET /protected/profile: успешный запрос с моком Django"""
         respx.get(f"{DJANGO_BASE}/accounts/me/").mock(
             return_value=Response(200, json={"id": 1, "username": "test", "email": "t@e.com"})
@@ -21,7 +21,7 @@ class TestDjangoIntegration:
 
         response = await async_client.get(
             "/api/v1/protected/profile",
-            headers=auth_headers
+            headers=jwt_bearer_headers
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -30,7 +30,7 @@ class TestDjangoIntegration:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_protected_recommendations(self, async_client, auth_headers):
+    async def test_protected_recommendations(self, async_client, jwt_bearer_headers):
         """GET /protected/recommendations: проверка структуры ответа"""
         # Мокаем два вызова: verify_django_token + recommendations
         respx.get(f"{DJANGO_BASE}/accounts/me/").mock(
@@ -45,7 +45,7 @@ class TestDjangoIntegration:
 
         response = await async_client.get(
             "/api/v1/protected/recommendations",
-            headers=auth_headers,
+            headers=jwt_bearer_headers,
             params={"limit": 2}
         )
         assert response.status_code == status.HTTP_200_OK
@@ -64,7 +64,7 @@ class TestDjangoIntegration:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_protected_django_401(self, async_client, auth_headers):
+    async def test_protected_django_401(self, async_client, jwt_bearer_headers):
         """Защищённый эндпоинт с невалидным Django-токеном -> 401"""
         respx.get(f"{DJANGO_BASE}/accounts/me/").mock(
             return_value=Response(401, json={"detail": "Invalid token"})
@@ -72,13 +72,13 @@ class TestDjangoIntegration:
 
         response = await async_client.get(
             "/api/v1/protected/profile",
-            headers=auth_headers
+            headers=jwt_bearer_headers
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_background_task_progress_report(self, async_client, auth_headers):
+    async def test_background_task_progress_report(self, async_client, jwt_bearer_headers):
         """POST /protected/progress/report -> 202 и BackgroundTask запланирована"""
         respx.get(f"{DJANGO_BASE}/accounts/me/").mock(
             return_value=Response(200, json={"id": 1, "username": "test", "email": "t@e.com"})
@@ -86,7 +86,7 @@ class TestDjangoIntegration:
 
         response = await async_client.post(
             "/api/v1/protected/progress/report",
-            headers=auth_headers,
+            headers=jwt_bearer_headers,
             json={"period_days": 7, "include_recommendations": True}
         )
         assert response.status_code == status.HTTP_202_ACCEPTED

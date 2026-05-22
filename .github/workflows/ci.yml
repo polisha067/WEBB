@@ -1,0 +1,65 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main", "development" ]
+  pull_request:
+    branches: [ "main", "development" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Create .env file for CI
+      run: |
+        cat << EOF > .env
+        DJANGO_SECRET_KEY=test_secret_key
+        DEBUG=True
+        ALLOWED_HOSTS=*
+        CORS_ALLOWED_ORIGINS=http://localhost:8000
+        POSTGRES_DB=cinema_db
+        POSTGRES_USER=postgres
+        POSTGRES_PASSWORD=postgres
+        FASTAPI_APP_NAME=Cinema API Gateway
+        FASTAPI_DEBUG=True
+        FASTAPI_LOG_LEVEL=info
+        FASTAPI_CORS_ORIGINS=*
+        FASTAPI_SECRET_KEY=fastapi_secret
+        FASTAPI_DATABASE_URL=postgresql://postgres:postgres@db:5432/cinema_db
+        FASTAPI_DJANGO_API_URL=http://web:8000/api
+        FASTAPI_DJANGO_API_TIMEOUT=5.0
+        EOF
+
+    - name: Build and Start Docker Compose
+      run: |
+        docker-compose up -d --build
+
+    - name: Check running containers
+      run: |
+        docker-compose ps
+        
+    - name: Run Django Tests
+      run: |
+        docker-compose exec -T web python manage.py test
+        
+    - name: Run FastAPI Tests
+      run: |
+        docker-compose exec -T fastapi_service pytest
+
+    - name: Run Flask UGC Tests
+      run: |
+        docker-compose exec -T ugc_service pytest
+
+    - name: Show logs if failure
+      if: failure()
+      run: |
+        docker-compose logs
+
+    - name: Stop and Remove Containers
+      if: always()
+      run: |
+        docker-compose down -v
