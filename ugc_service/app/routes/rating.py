@@ -8,6 +8,7 @@ from .. import db
 from ..models.rating import Rating
 from ..schemas.rating import RatingCreate, AverageRatingResponse
 from ..middleware import require_auth
+from ..utils.django_client import django_client
 
 rating_bp = Blueprint('ratings', __name__)
 
@@ -25,6 +26,13 @@ def create_or_update_rating():
 
     if not user_id:
         return jsonify({"error": "User ID not found in token"}), 401
+
+    # Проверка: существует ли фильм в Django
+    try:
+        if not django_client.movie_exists(data.movie_id):
+            return jsonify({"error": "Фильм не найден в основной базе данных"}), 404
+    except Exception as e:
+        return jsonify({"error": "Не удалось проверить фильм (сервис недоступен)"}), 503
 
     rating = Rating.query.filter_by(movie_id=data.movie_id, user_id=user_id).first()
 

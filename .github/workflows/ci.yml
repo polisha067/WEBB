@@ -48,7 +48,7 @@ jobs:
         
     - name: Run FastAPI Tests
       run: |
-        docker compose exec -T fastapi_service pytest
+        docker compose exec -e PYTHONPATH=/app -T fastapi_service pytest
 
     - name: Run Flask UGC Tests
       run: |

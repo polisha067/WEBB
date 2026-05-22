@@ -8,6 +8,7 @@ from .. import db
 from ..middleware import require_auth
 from ..models.comment import Comment
 from ..schemas.comment import CommentCreate, CommentUpdate
+from ..utils.django_client import django_client
 
 comments_bp = Blueprint('comments', __name__)
 
@@ -56,6 +57,13 @@ def create_comment():
                     'message': 'parent_id должен относиться к тому же фильму',
                 },
             }), 400
+
+    # Проверка: существует ли фильм в Django
+    try:
+        if not django_client.movie_exists(data.movie_id):
+            return jsonify({"error": "Фильм не найден в основной базе данных"}), 404
+    except Exception as e:
+        return jsonify({"error": "Не удалось проверить фильм (сервис недоступен)"}), 503
 
     comment = Comment(
         user_id=user_id,

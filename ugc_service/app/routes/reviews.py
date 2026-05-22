@@ -7,6 +7,7 @@ from .. import db
 from ..models.review import Review
 from ..schemas.review import ReviewCreate, ReviewUpdate, ReviewResponse
 from ..middleware import require_auth, require_admin
+from ..utils.django_client import django_client
 
 reviews_bp = Blueprint('reviews', __name__)
 
@@ -29,6 +30,13 @@ def create_review():
     existing_review = Review.query.filter_by(movie_id=data.movie_id, user_id=user_id).first()
     if existing_review:
         return jsonify({"error": "Вы уже оставили отзыв к этому фильму"}), 400
+
+    # Проверка: существует ли фильм в Django
+    try:
+        if not django_client.movie_exists(data.movie_id):
+            return jsonify({"error": "Фильм не найден в основной базе данных"}), 404
+    except Exception as e:
+        return jsonify({"error": "Не удалось проверить фильм (сервис недоступен)"}), 503
 
     
     review = Review(
