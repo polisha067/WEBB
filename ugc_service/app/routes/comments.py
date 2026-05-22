@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 from pydantic import ValidationError
+from flasgger import swag_from
 
 from .. import db
 from ..middleware import require_auth
@@ -32,6 +33,7 @@ def _build_comment_tree(comments: list[Comment]) -> list[dict]:
 
 @comments_bp.route('/', methods=['POST'])
 @require_auth
+@swag_from('../specs/comments.yaml')
 def create_comment():
     """Создать комментарий или ответ на другой комментарий"""
     try:
@@ -69,6 +71,7 @@ def create_comment():
 
 
 @comments_bp.route('/', methods=['GET'])
+@swag_from('../specs/comments.yaml')
 def get_comments():
     """Список комментариев фильма с вложенностью (только active)."""
     movie_id = request.args.get('movie_id', type=int)
@@ -85,6 +88,7 @@ def get_comments():
 
 @comments_bp.route('/<int:comment_id>/', methods=['PATCH'])
 @require_auth
+@swag_from('../specs/comments.yaml')
 def update_comment(comment_id):
     """Редактировать комментарий (только автор)"""
     comment = Comment.query.get(comment_id)
@@ -117,6 +121,7 @@ def update_comment(comment_id):
 
 @comments_bp.route('/<int:comment_id>/', methods=['DELETE'])
 @require_auth
+@swag_from('../specs/comments.yaml')
 def delete_comment(comment_id):
     """Удалить комментарий (автор или модератор)"""
     comment = Comment.query.get(comment_id)

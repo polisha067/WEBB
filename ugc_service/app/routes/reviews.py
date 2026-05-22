@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 from datetime import datetime, timezone
+from flasgger import swag_from
 
 from .. import db
 from ..models.review import Review
@@ -12,6 +13,7 @@ reviews_bp = Blueprint('reviews', __name__)
 
 @reviews_bp.route('/', methods=['POST'])
 @require_auth
+@swag_from('../specs/reviews.yaml')
 def create_review():
     """Создать новый отзыв"""
     try:
@@ -23,8 +25,11 @@ def create_review():
     if not user_id:
         return jsonify({"error": "User ID not found in token"}), 401
 
-    # Валидация movie_id через Django сервис (опционально)
-    # Здесь можно добавить проверку существования фильма
+    # Проверка: пользователь может оставить только один отзыв на фильм
+    existing_review = Review.query.filter_by(movie_id=data.movie_id, user_id=user_id).first()
+    if existing_review:
+        return jsonify({"error": "Вы уже оставили отзыв к этому фильму"}), 400
+
     
     review = Review(
         user_id=user_id,
@@ -40,6 +45,7 @@ def create_review():
 
 
 @reviews_bp.route('/', methods=['GET'])
+@swag_from('../specs/reviews.yaml')
 def get_reviews():
     """Получить список отзывов для фильма (только active)"""
     movie_id = request.args.get('movie_id', type=int)
@@ -51,6 +57,7 @@ def get_reviews():
 
 
 @reviews_bp.route('/<int:review_id>/', methods=['GET'])
+@swag_from('../specs/reviews.yaml')
 def get_review(review_id):
     """Получить детали отзыва по ID"""
     review = Review.query.get(review_id)
@@ -62,6 +69,7 @@ def get_review(review_id):
 
 @reviews_bp.route('/<int:review_id>/', methods=['PATCH'])
 @require_auth
+@swag_from('../specs/reviews.yaml')
 def update_review(review_id):
     """Редактировать отзыв (только автор)"""
     review = Review.query.get(review_id)
@@ -95,6 +103,7 @@ def update_review(review_id):
 
 @reviews_bp.route('/<int:review_id>/', methods=['DELETE'])
 @require_auth
+@swag_from('../specs/reviews.yaml')
 def delete_review(review_id):
     """Удалить отзыв (автор или модератор)"""
     review = Review.query.get(review_id)

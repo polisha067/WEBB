@@ -113,6 +113,7 @@ services:
       - FLASK_ENV=development
       - DATABASE_URL=postgresql://ugc_user:ugc_pass@ugc_db:5432/ugc_db
       - DJANGO_API_URL=http://web:8000/api
+      - CORS_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
     volumes:
       - ./ugc_service:/app
     command: python run.py

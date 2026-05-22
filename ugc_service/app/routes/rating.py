@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 from sqlalchemy import func
 from datetime import datetime, timezone
+from flasgger import swag_from
 
 from .. import db
 from ..models.rating import Rating
@@ -12,6 +13,7 @@ rating_bp = Blueprint('ratings', __name__)
 
 @rating_bp.route('/', methods=['POST'])
 @require_auth
+@swag_from('../specs/rating.yaml')
 def create_or_update_rating():
     """Поставить или обновить оценку (Upsert)"""
     try:
@@ -38,6 +40,7 @@ def create_or_update_rating():
 
 
 @rating_bp.route('/', methods=['GET'])
+@swag_from('../specs/rating.yaml')
 def get_movie_ratings():
     """Список всех оценок фильма"""
     movie_id = request.args.get('movie_id', type=int)
@@ -49,6 +52,7 @@ def get_movie_ratings():
 
 
 @rating_bp.route('/average/', methods=['GET'])
+@swag_from('../specs/rating.yaml')
 def get_average_rating():
     """Получить средний рейтинг фильма"""
     movie_id = request.args.get('movie_id', type=int)

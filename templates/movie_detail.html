@@ -36,26 +36,26 @@
   </div>
 </section>
 
-<section class="ugc-section" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
-  <h2>Отзывы зрителей</h2>
+<section class="ugc-section" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+  <h2 style="color: var(--text-white);">Отзывы зрителей</h2>
   
   <div id="ugcRatingContainer" style="margin-bottom: 20px;">
     <strong>Средняя оценка (пользователи):</strong> <span id="ugcAverageRating">Загрузка...</span>
   </div>
 
   {% if request.user.is_authenticated %}
-    <div class="review-form" style="margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 8px;">
-      <h3>Написать отзыв</h3>
+    <div class="review-form" style="margin-bottom: 30px; background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <h3 style="color: var(--text-white); margin-bottom: 15px;">Написать отзыв</h3>
       <form id="reviewForm" onsubmit="submitReview(event)">
-        <div style="margin-bottom: 10px;">
-          <label>Оценка (1-10):</label>
-          <input type="number" id="reviewRating" min="1" max="10" required style="width: 60px;">
+        <div style="margin-bottom: 15px;">
+          <label style="color: var(--text-gray); display: block; margin-bottom: 5px;">Оценка (1-10):</label>
+          <input type="number" id="reviewRating" min="1" max="10" required style="width: 80px; padding: 8px; background: var(--bg-element); color: var(--text-white); border: 1px solid var(--border-color); border-radius: 4px;">
         </div>
-        <div style="margin-bottom: 10px;">
-          <label>Текст отзыва:</label><br>
-          <textarea id="reviewText" rows="3" style="width: 100%;" required minlength="10" maxlength="5000"></textarea>
+        <div style="margin-bottom: 15px;">
+          <label style="color: var(--text-gray); display: block; margin-bottom: 5px;">Текст отзыва:</label>
+          <textarea id="reviewText" rows="4" style="width: 100%; padding: 10px; background: var(--bg-element); color: var(--text-white); border: 1px solid var(--border-color); border-radius: 4px; resize: vertical;" required minlength="10" maxlength="5000"></textarea>
         </div>
-        <button type="submit" id="submitReviewBtn">Отправить</button>
+        <button type="submit" id="submitReviewBtn" style="background: var(--primary-red); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background 0.3s;">Отправить</button>
       </form>
     </div>
   {% else %}
@@ -166,22 +166,23 @@
       if (reviewsRes.ok) {
         const reviews = await reviewsRes.json();
         if (reviews.length === 0) {
-          reviewsContainer.innerHTML = '<p>Пока нет отзывов. Будьте первым!</p>';
+          reviewsContainer.innerHTML = '<p style="color: var(--text-muted);">Пока нет отзывов. Будьте первым!</p>';
         } else {
           reviewsContainer.innerHTML = reviews.map(r => `
-            <div class="review-item" style="border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px;">
-              <strong>Пользователь ID: ${r.user_id}</strong> <span style="color: #f39c12;">★ ${r.rating}/10</span>
-              <p style="margin-top: 5px;">${r.text}</p>
-              <small style="color: #888;">${new Date(r.created_at).toLocaleString()}</small>
+            <div class="review-item" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 15px; margin-bottom: 15px; border-radius: 8px;">
+              <strong style="color: var(--text-white);">Пользователь ID: ${r.user_id}</strong> 
+              <span style="color: var(--primary-red); margin-left: 10px; font-weight: bold;">★ ${r.rating}/10</span>
+              <p style="margin-top: 10px; color: var(--text-gray); line-height: 1.5;">${r.text}</p>
+              <small style="color: var(--text-muted); display: block; margin-top: 10px;">${new Date(r.created_at).toLocaleString()}</small>
             </div>
           `).join('');
         }
       } else {
-        reviewsContainer.innerHTML = '<p>Не удалось загрузить отзывы.</p>';
+        reviewsContainer.innerHTML = '<p style="color: var(--status-error);">Не удалось загрузить отзывы.</p>';
       }
     } catch (e) {
       console.error('Ошибка загрузки отзывов', e);
-      document.getElementById('reviewsList').innerHTML = '<p>Ошибка подключения к сервису UGC.</p>';
+      document.getElementById('reviewsList').innerHTML = '<p style="color: var(--status-error);">Ошибка подключения к сервису UGC.</p>';
     }
   }
 
