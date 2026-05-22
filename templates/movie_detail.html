@@ -73,6 +73,30 @@
   </div>
 </section>
 
+<section class="comments-section" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+  <h2 style="color: var(--text-white);">Комментарии</h2>
+  
+  {% if request.user.is_authenticated %}
+    <div class="comment-form" style="margin-bottom: 30px; background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <h3 style="color: var(--text-white); margin-bottom: 15px;">Оставить комментарий</h3>
+      <form id="commentForm" onsubmit="submitComment(event)">
+        <div style="margin-bottom: 15px;">
+          <textarea id="commentText" rows="3" style="width: 100%; padding: 10px; background: var(--bg-element); color: var(--text-white); border: 1px solid var(--border-color); border-radius: 4px; resize: vertical;" required minlength="10" maxlength="3000" placeholder="Ваш комментарий (минимум 10 символов)..."></textarea>
+        </div>
+        <button type="submit" id="submitCommentBtn" style="background: var(--primary-red); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background 0.3s;">Написать</button>
+      </form>
+    </div>
+  {% else %}
+    <p style="margin-bottom: 20px; color: var(--text-muted);">
+      <a href="/login/">Войдите</a>, чтобы оставить комментарий.
+    </p>
+  {% endif %}
+
+  <div id="commentsList">
+    <p>Загрузка комментариев...</p>
+  </div>
+</section>
+
 
 {% if request.user.is_authenticated %}
 <script>
@@ -149,6 +173,21 @@
   const authToken = '{{ auth_token|default:"" }}';
   const currentMovieId = {{ movie.id }};
 
+  function formatApiError(err) {
+    if (Array.isArray(err)) {
+      return 'Ошибки заполнения:\n' + err.map(e => {
+        let field = e.loc[e.loc.length - 1];
+        if (field === 'text') field = 'текст';
+        if (field === 'rating') field = 'оценка';
+        return `- ${field}: ${e.msg}`;
+      }).join('\n');
+    } else if (err && err.error) {
+      if (typeof err.error === 'string') return err.error;
+      if (err.error.message) return err.error.message;
+    }
+    return JSON.stringify(err);
+  }
+
   async function loadUGCData() {
     // Загрузка среднего рейтинга
     try {
@@ -169,6 +208,40 @@
     } catch (e) {
       console.error('Ошибка загрузки рейтинга', e);
       document.getElementById('ugcAverageRating').innerText = 'Ошибка загрузки';
+    }
+
+    // Загрузка комментариев
+    try {
+      const commentsRes = await fetch(`${UGC_BASE_URL}/comments/?movie_id=${currentMovieId}`);
+      const commentsContainer = document.getElementById('commentsList');
+      if (commentsRes.ok) {
+        const comments = await commentsRes.json();
+        if (comments.length === 0) {
+          commentsContainer.innerHTML = '<p style="color: var(--text-muted);">Нет комментариев. Будьте первым!</p>';
+        } else {
+          let html = '';
+          const renderComment = (c, margin) => {
+            let res = `
+              <div class="comment-item" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 15px; margin-bottom: 10px; border-radius: 8px; margin-left: ${margin}px;">
+                <strong style="color: var(--text-white);">Пользователь ID: ${c.user_id}</strong>
+                <p style="margin-top: 5px; color: var(--text-gray); line-height: 1.4;">${c.text}</p>
+                <small style="color: var(--text-muted); display: block; margin-top: 5px;">${new Date(c.created_at).toLocaleString()}</small>
+              </div>
+            `;
+            if (c.replies && c.replies.length > 0) {
+              c.replies.forEach(r => { res += renderComment(r, margin + 40); });
+            }
+            return res;
+          };
+          comments.forEach(c => { html += renderComment(c, 0); });
+          commentsContainer.innerHTML = html;
+        }
+      } else {
+        commentsContainer.innerHTML = '<p style="color: var(--status-error);">Не удалось загрузить комментарии.</p>';
+      }
+    } catch (e) {
+      console.error('Ошибка загрузки комментариев', e);
+      document.getElementById('commentsList').innerHTML = '<p style="color: var(--status-error);">Ошибка подключения к сервису UGC.</p>';
     }
 
     // Загрузка отзывов
@@ -239,7 +312,42 @@
         
       } else {
         const err = await res.json();
-        alert('Ошибка добавления отзыва: ' + JSON.stringify(err));
+        alert('Ошибка: ' + formatApiError(err));
+      }
+    } catch (e) {
+      alert('Ошибка соединения с сервисом UGC');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function submitComment(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitCommentBtn');
+    btn.disabled = true;
+    
+    const text = document.getElementById('commentText').value;
+
+    try {
+      const res = await fetch(`${UGC_BASE_URL}/comments/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Token ${authToken}` : ''
+        },
+        body: JSON.stringify({
+          movie_id: currentMovieId,
+          text: text,
+          status: 'active'
+        })
+      });
+
+      if (res.ok) {
+        document.getElementById('commentForm').reset();
+        loadUGCData(); // Перезагружаем списки
+      } else {
+        const err = await res.json();
+        alert('Ошибка: ' + formatApiError(err));
       }
     } catch (e) {
       alert('Ошибка соединения с сервисом UGC');

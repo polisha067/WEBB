@@ -1,6 +1,6 @@
 # Cinema Project
 
-Django REST API + FastAPI (Microservice) - Третий спринт
+Django REST API + FastAPI (Microservice) + UGC_service(Flask) - Четвертый спринт
 
 - **Спринт 2**: Сервисный слой, кастомные exceptions, permissions, тесты на Django
 - **Спринт 3**: FastAPI в роли API-шлюза (BFF) поверх Django
@@ -354,3 +354,10 @@ docker-compose exec web python manage.py test subscriptions
 docker-compose exec web python manage.py test watchlist
 docker-compose exec web python manage.py test movies
 ```
+
+---
+
+## CI (GitHub Actions)
+
+Автотесты настроены в `.github/workflows/ci.yml` (при push/PR в `main` и `development`). 
+Пайплайн собирает `docker-compose` и прогоняет тесты внутри контейнеров всех трёх сервисов (Django, FastAPI, Flask)
