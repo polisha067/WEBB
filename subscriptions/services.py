@@ -1,13 +1,10 @@
 from __future__ import annotations
-from dataclasses import dataclass
 from django.db import transaction
 from django.utils import timezone
 from core.exceptions import AlreadySubscribed, SubscriptionAlreadyCancelled
 from .models import Subscription, UserSubscription
 
-@dataclass(frozen=True, slots=True)
-class ExpireResult:
-    expired_count: int
+
 
 class SubscriptionService:
     @staticmethod
@@ -40,7 +37,8 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def check_expired(*, now=None) -> ExpireResult:
+    def check_expired(*, now=None):
+        """Помечает просроченные подписки, возвращает кол-во"""
         now = now or timezone.now()
 
         qs = UserSubscription.objects.select_for_update().filter(
@@ -48,5 +46,4 @@ class SubscriptionService:
             is_active=True,
             expires_at__lt=now,
         )
-        expired_count = qs.update(status="expired", is_active=False)
-        return ExpireResult(expired_count=expired_count)
+        return qs.update(status="expired", is_active=False)

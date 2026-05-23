@@ -81,7 +81,7 @@ def create_comment():
 @comments_bp.route('/', methods=['GET'])
 @swag_from('../specs/comments.yaml')
 def get_comments():
-    """Список комментариев фильма с вложенностью (только active)."""
+    """Список комментариев фильма с вложенностью"""
     movie_id = request.args.get('movie_id', type=int)
     if not movie_id:
         return jsonify({'error': 'Параметр movie_id обязателен'}), 400

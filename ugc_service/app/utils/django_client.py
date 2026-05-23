@@ -84,9 +84,7 @@ class DjangoAPIClient:
             )
 
     def verify_token(self, token: str) -> dict:
-        """
-        Проверяет токен через новый эндпоинт Django и возвращает права
-        """
+        """Проверяет токен через новый эндпоинт Django и возвращает права"""
         base_url = current_app.config.get('DJANGO_API_URL')
         url = f"{base_url}/accounts/verify/"
         headers = {'Authorization': f'Token {token}'}

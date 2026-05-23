@@ -55,4 +55,4 @@ class TokenPayload(BaseModel):
     sub: str
     username: str
     exp: int
-    type: str  # "access" или "refresh"
+    type: str  

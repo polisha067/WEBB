@@ -1,7 +1,4 @@
-"""
-Единый обработчик доменных исключений для DRF
-Перехватывает DomainException и возвращает Response с правильным статусом
-"""
+
 from rest_framework.views import exception_handler
 from rest_framework.response import Response
 

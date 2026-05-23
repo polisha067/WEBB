@@ -1,5 +1,3 @@
-# База данных
-
 from pathlib import Path
 from core.conf import (
     POSTGRES_DB,

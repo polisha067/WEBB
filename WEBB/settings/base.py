@@ -1,4 +1,3 @@
-# Главный файл
 
 import os
 from pathlib import Path

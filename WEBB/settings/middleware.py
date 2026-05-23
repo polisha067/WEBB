@@ -1,5 +1,3 @@
-# Middleware - обработчики запросов
-
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',

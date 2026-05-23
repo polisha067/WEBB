@@ -1,6 +1,5 @@
-"""
-Сервисный слой для аккаунтов: регистрация, вход, выход
-"""
+"""Сервисный слой для аккаунтов: регистрация, вход, выход"""
+
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
