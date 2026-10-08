@@ -8,6 +8,10 @@ from app.core.exceptions import AppException
 
 logger = logging.getLogger(__name__)
 
+# Повторять безопасно только идемпотентные запросы: повтор POST может, например,
+# создать пользователя дважды, если первый запрос дошёл, а ответ потерялся
+IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE"})
+
 
 class ServiceClient:
     """Async HTTP-клиент к внутреннему сервису с retry и маппингом ошибок"""
@@ -37,9 +41,10 @@ class ServiceClient:
     ) -> Any:
         url = f"{self._base_url}/{endpoint.lstrip('/')}"
         last_error: Exception | None = None
+        retries = self._retries if method.upper() in IDEMPOTENT_METHODS else 0
 
         async with httpx.AsyncClient(timeout=self._timeout) as client:
-            for attempt in range(self._retries + 1):
+            for attempt in range(retries + 1):
                 try:
                     response = await client.request(
                         method=method,
@@ -49,7 +54,7 @@ class ServiceClient:
                         json=json_body,
                     )
 
-                    if response.status_code >= 500 and attempt < self._retries:
+                    if response.status_code >= 500 and attempt < retries:
                         await asyncio.sleep(self._backoff_base * (2**attempt))
                         continue
 
@@ -59,7 +64,7 @@ class ServiceClient:
                     return response.json()
                 except httpx.RequestError as exc:
                     last_error = exc
-                    if attempt < self._retries:
+                    if attempt < retries:
                         await asyncio.sleep(self._backoff_base * (2**attempt))
                         continue
                     break

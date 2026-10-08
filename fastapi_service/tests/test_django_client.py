@@ -86,3 +86,15 @@ class TestDjangoClient:
             await client.request("GET", "/movies/")
         assert exc_info.value.code == "DJANGO_API_UNAVAILABLE"
         assert exc_info.value.status_code == 503
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_post_is_not_retried(self):
+        """POST неидемпотентен -> ровно одна попытка даже при 5xx"""
+        route = respx.post(f"{DJANGO_BASE}/accounts/register/").mock(
+            return_value=Response(500, json={"detail": "Server error"})
+        )
+        client = DjangoClient()
+        with pytest.raises(AppException):
+            await client.request("POST", "/accounts/register/", json_body={"username": "new"})
+        assert route.call_count == 1

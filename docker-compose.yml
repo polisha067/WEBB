@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
@@ -23,6 +21,9 @@ services:
   web:
     build: .
     container_name: cinema_web
+    # Для разработки: runserver с автоперезагрузкой (код смонтирован томом).
+    # В образе (Dockerfile) по умолчанию gunicorn -для прод-запуска уберите эту строку
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
