@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from .models import Watchlist
 from .serializers import WatchlistSerializer
 from .permissions import IsOwnerOrReadOnly
-from .services import WatchlistService
+from . import services
 from django.core.exceptions import ValidationError
 
 
@@ -17,7 +17,7 @@ class WatchlistViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         try:
-            WatchlistService.add(
+            services.add(
                 user=self.request.user,
                 movie=serializer.validated_data['movie'],
                 status=serializer.validated_data.get('status', 'want_to_watch'),
@@ -30,7 +30,7 @@ class WatchlistViewSet(viewsets.ModelViewSet):
 
         try:
             new_status = request.data.get('status', instance.status)
-            watchlist_item = WatchlistService.change_status(
+            watchlist_item = services.change_status(
                 user=request.user,
                 movie=instance.movie,
                 new_status=new_status

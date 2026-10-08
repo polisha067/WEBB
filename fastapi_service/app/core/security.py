@@ -8,9 +8,6 @@ from app.core.config import settings
 from app.schemas.auth import TokenPayload
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -28,14 +25,14 @@ def create_token(data: dict, expires_delta: timedelta) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
 def create_access_token(user_id: int, username: str, django_token: str = "") -> str:
     """Создание access токена"""
     return create_token(
         data={"sub": str(user_id), "username": username, "type": "access", "django_token": django_token},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
 
@@ -43,14 +40,14 @@ def create_refresh_token(user_id: int, username: str, django_token: str = "") ->
     """Создание refresh токена"""
     return create_token(
         data={"sub": str(user_id), "username": username, "type": "refresh", "django_token": django_token},
-        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        expires_delta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     )
 
 
 def decode_token(token: str, expected_type: str) -> Optional[TokenPayload]:
     """Декодирование и валидация токена"""
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         if payload.get("type") != expected_type:
             return None
         return TokenPayload(**payload)

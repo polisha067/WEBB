@@ -11,43 +11,41 @@ from core.exceptions import (
     PasswordsDoNotMatch,
 )
 
-class AccountService:
 
-    @staticmethod
-    def register(username: str, email: str, password: str, password_confirm: str):
-        """Зарегистрировать пользователя и создать токен"""
-        if password != password_confirm:
-            raise PasswordsDoNotMatch()
+def register(username: str, email: str, password: str, password_confirm: str):
+    """Зарегистрировать пользователя и создать токен"""
+    if password != password_confirm:
+        raise PasswordsDoNotMatch()
 
-        if User.objects.filter(username=username).exists():
-            raise UsernameAlreadyExists()
+    if User.objects.filter(username=username).exists():
+        raise UsernameAlreadyExists()
 
-        user = User.objects.create_user(
-            username=username,
-            email=email or '',
-            password=password,
-        )
-        token = Token.objects.create(user=user)
-        return user, token
+    user = User.objects.create_user(
+        username=username,
+        email=email or '',
+        password=password,
+    )
+    token = Token.objects.create(user=user)
+    return user, token
 
-    @staticmethod
-    def login(username: str, password: str):
-        """Аутентифицировать пользователя и вернуть токен"""
-        user = authenticate(username=username, password=password)
 
-        if user is None:
-            user_obj = User.objects.filter(username=username).first()
-            if user_obj and not user_obj.is_active:
-                raise AccountDisabled()
-            raise InvalidCredentials()
+def login(username: str, password: str):
+    """Аутентифицировать пользователя и вернуть токен"""
+    user = authenticate(username=username, password=password)
 
-        if not user.is_active:
+    if user is None:
+        user_obj = User.objects.filter(username=username).first()
+        if user_obj and not user_obj.is_active:
             raise AccountDisabled()
+        raise InvalidCredentials()
 
-        token, _ = Token.objects.get_or_create(user=user)
-        return user, token
+    if not user.is_active:
+        raise AccountDisabled()
 
-    @staticmethod
-    def logout(user):
-        """Удалить токен пользователя"""
-        user.auth_token.delete()
+    token, _ = Token.objects.get_or_create(user=user)
+    return user, token
+
+
+def logout(user):
+    """Удалить токен пользователя"""
+    user.auth_token.delete()

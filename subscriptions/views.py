@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema
 from .models import Subscription, UserSubscription
 from .serializers import SubscriptionSerializer, UserSubscriptionSerializer
 from .openapi import SUBSCRIPTION_SCHEMA, USER_SUBSCRIPTION_SCHEMA
-from .services import SubscriptionService
+from . import services
 
 
 @SUBSCRIPTION_SCHEMA
@@ -38,7 +38,7 @@ class UserSubscriptionViewSet(ListModelMixin,
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_subscription = SubscriptionService.activate(
+        user_subscription = services.activate(
             user=request.user,
             subscription=serializer.validated_data["subscription"],
         )
@@ -49,5 +49,5 @@ class UserSubscriptionViewSet(ListModelMixin,
     def cancel(self, request, pk=None):
         """Отмена подписки"""
         user_subscription = self.get_object()
-        user_subscription = SubscriptionService.cancel(user_subscription=user_subscription)
+        user_subscription = services.cancel(user_subscription=user_subscription)
         return Response(self.get_serializer(user_subscription).data)

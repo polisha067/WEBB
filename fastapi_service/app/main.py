@@ -65,6 +65,7 @@ async def lifespan(app: FastAPI):
 tags_metadata = [
     {"name": "Auth", "description": "JWT регистрация / логин / refresh"},
     {"name": "Protected", "description": "Защищённые эндпоинты (требуют токен)"},
+    {"name": "BFF Pages", "description": "Агрегированные данные под конкретные страницы фронта"},
     {"name": "System", "description": "Health / Readiness checks"},
 ]
 

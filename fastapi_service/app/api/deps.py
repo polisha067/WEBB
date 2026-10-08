@@ -1,88 +1,47 @@
-from fastapi import Depends, HTTPException, status, Header
-from app.core.config import settings
-import httpx
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
-from app.core.security import ALGORITHM
+
+from app.core.security import decode_token
+from app.schemas.auth import CurrentUser
+from app.services.auth import AuthService
+from app.services.django_client import DjangoClient
+from app.services.movie_page import MoviePageService
+from app.services.protected import ProtectedService
+from app.services.ugc_client import UgcClient
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
-async def verify_django_token(authorization: str = Header(..., alias="Authorization")) -> dict:
-    """Верифицирует токен через Django API. Ожидает формат: Token <key>"""
-    if not authorization.startswith("Token "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "INVALID_HEADER", "message": "Authorization header must start with 'Token '"}
-        )
 
-    token = authorization.split("Token ", 1)[1]
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "UNAUTHORIZED", "message": "Token is empty"}
-        )
+async def get_current_user_jwt(token: str | None = Depends(oauth2_scheme)) -> CurrentUser:
+    """Получает пользователя из JWT (Bearer), декодируя токен локально в BFF.
 
-    async with httpx.AsyncClient(timeout=settings.DJANGO_API_TIMEOUT) as client:
-        try:
-            response = await client.get(
-                f"{settings.DJANGO_API_URL}{settings.DJANGO_VERIFY_ENDPOINT}",
-                headers={"Authorization": f"Token {token}"}
-            )
-
-            if response.status_code == 401:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail={"code": "UNAUTHORIZED", "message": "Invalid or expired Django token"}
-                )
-
-            if response.status_code != 200:
-                django_err = response.json()
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail={"code": django_err.get("code", "DJANGO_API_ERROR"),
-                            "message": django_err.get("detail", "Django API error")}
-                )
-
-            return response.json()
-        except httpx.RequestError as e:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail={"code": "DJANGO_API_UNAVAILABLE", "message": str(e)}
-            )
-
-
-async def get_current_user(payload: dict = Depends(verify_django_token)) -> dict:
-    """Возвращает данные пользователя после успешной верификации"""
-    return payload
-
-
-async def get_current_user_jwt(token: str = Depends(oauth2_scheme)) -> dict:
-    """Получает пользователя из JWT токена (Bearer)"""
+    Похода в Django на каждый запрос нет: подпись и срок жизни access-токена
+    проверяются здесь. Если Django-токен отозван, Django вернёт 401 при первом
+    же проксируемом запросе, и он будет прокинут клиенту
+    """
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "UNAUTHORIZED", "message": "Not authenticated"}
         )
-    
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
 
-        if payload.get("type") != "access":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail={"code": "INVALID_TOKEN", "message": "Token is not an access token"}
-            )
-            
-        return {"id": payload.get("sub"), "username": payload.get("username"), "django_token": payload.get("django_token", "")}
-        
-    except (JWTError, Exception):
+    payload = decode_token(token, expected_type="access")
+    if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "INVALID_TOKEN", "message": "Token is invalid or expired"}
         )
 
+    return CurrentUser(id=int(payload.sub), username=payload.username, django_token=payload.django_token)
 
-async def get_current_active_user(current_user: dict = Depends(get_current_user_jwt)) -> dict:
-    """Проверяет, что пользователь активен (заглушка для расширения)"""
-    # В реальности: запрос в Django на проверку is_active
-    return current_user
+
+def get_auth_service() -> AuthService:
+    return AuthService(DjangoClient())
+
+
+def get_protected_service() -> ProtectedService:
+    return ProtectedService(DjangoClient())
+
+
+def get_movie_page_service() -> MoviePageService:
+    return MoviePageService(DjangoClient(), UgcClient())

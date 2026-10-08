@@ -4,7 +4,8 @@
 - Обмен данными строго через HTTP/REST внутри Docker-сети (`http://web:8000/api`)
 - Все вызовы из FastAPI выполняются асинхронно через `httpx.AsyncClient`
 - FastAPI не имеет прямого доступа к базе данных Django. Данные пользователей, фильмов и подписок запрашиваются через публичный DRF API
-- Аутентификация проходит через прокси-верификацию токена в Django (`GET /api/accounts/me/`)
+- Аутентификация: Django выступает провайдером (логин/регистрация), FastAPI выдаёт свои JWT и проверяет их локально
+- Pydantic-модели этих DTO лежат в `app/contracts/` (`django.py`, `ugc.py`), ответы валидируются через `parse_contract` — при несовпадении FastAPI отвечает `502 *_CONTRACT_VIOLATION`
 
 ## 2. DTO (Data Transfer Objects)
 
@@ -17,7 +18,7 @@
 }
 ```
 
-### Фильм (GET /api/movies/{id}/)
+### Фильм (GET /api/movies/movies/{id}/)
 ```json
 {
   "id": 1,
@@ -94,11 +95,10 @@ FastAPI нормализует все ответы к единому форма�
 | 500           | 503            | DJANGO_API_ERROR   | Внутренняя ошибка Django          |
 
 ## 4. Аутентификация и авторизация
-- Клиент передаёт заголовок `Authorization: Token <drf_token_key>`
-- FastAPI проксирует запрос к `GET /api/accounts/me/` с тем же заголовком
-- При успехе (`200 OK`) извлекается payload пользователя и передаётся в контекст запроса
-- При `401` или `403` запрос прерывается с соответствующим кодом FastAPI.]
-- Swagger UI настроен на формат `Token <key>` (не Bearer)
+- `POST /api/v1/auth/login|register` → `AuthService` вызывает Django (`/api/accounts/login|register/`), получает `{user, token}` и выдаёт пару JWT (access/refresh). DRF-токен кладётся в claim `django_token`
+- Защищённые эндпоинты принимают `Authorization: Bearer <access_token>`; подпись и срок жизни проверяются **локально в FastAPI**, без запроса в Django на каждый вызов
+- Если DRF-токен отозван/пользователь заблокирован, Django вернёт `401` на первом проксируемом запросе, и он будет прокинут клиенту
+- Алгоритм и время жизни токенов задаются через `.env` (`FASTAPI_JWT_ALGORITHM`, `FASTAPI_ACCESS_TOKEN_EXPIRE_MINUTES`, `FASTAPI_REFRESH_TOKEN_EXPIRE_DAYS`)
 
 ## 5. Политика повторных попыток (Retry Policy)
 - Timeout: 5.0 секунд на один запрос (настраивается в `.env`)

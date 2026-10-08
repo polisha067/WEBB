@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from drf_spectacular.utils import extend_schema
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
-from .services import AccountService
+from . import services
 from .openapi import REGISTER_SCHEMA, LOGIN_SCHEMA, LOGOUT_SCHEMA, ME_SCHEMA
 
 
@@ -21,7 +21,7 @@ class RegisterViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
-        user, token = AccountService.register(
+        user, token = services.register(
             username=data['username'],
             email=data.get('email', ''),
             password=data['password'],
@@ -48,7 +48,7 @@ def login_view(request):
     serializer.is_valid(raise_exception=True)
 
     data = serializer.validated_data
-    user, token = AccountService.login(
+    user, token = services.login(
         username=data['username'],
         password=data['password'],
     )
@@ -56,10 +56,7 @@ def login_view(request):
     return Response({
         'status': 'success',
         'message': 'Вход выполнен успешно',
-        'user': {
-            'username': user.username,
-            'email': user.email
-        },
+        'user': UserSerializer(user).data,
         'token': token.key
     })
 
@@ -72,7 +69,7 @@ def logout_view(request):
     Выход пользователя (удаление токена)
     POST /api/accounts/logout/
     """
-    AccountService.logout(request.user)
+    services.logout(request.user)
 
     return Response({
         'status': 'success',

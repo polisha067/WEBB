@@ -47,6 +47,7 @@ docker-compose exec web python manage.py createsuperuser
 - **Django REST Framework 3.14** - API
 - **PostgreSQL 15** (Docker)
 - **Docker & Docker Compose**
+- **Gunicorn** - WSGI-сервер для Django в контейнере (статика отдаётся через **WhiteNoise**)
 - **Swagger / OpenAPI** (drf-spectacular)
 - **Token-аутентификация** (DRF authtoken)
 - **CORS** (django-cors-headers)
@@ -58,6 +59,8 @@ docker-compose exec web python manage.py createsuperuser
 
 | Переменная | Назначение | По умолчанию |
 |---|---|---|
+| `DJANGO_SETTINGS_MODULE` | модуль настроек Django | `config.settings.base` |
+| `GUNICORN_WORKERS` | число воркеров gunicorn | `3` |
 | `DJANGO_SECRET_KEY` | секретный ключ Django | `django-insecure-...` |
 | `DEBUG` | режим отладки | `True` |
 | `ALLOWED_HOSTS` | разрешённые хосты | `localhost,127.0.0.1,...` |
@@ -67,6 +70,10 @@ docker-compose exec web python manage.py createsuperuser
 | `POSTGRES_HOST` | хост БД | `db` |
 | `POSTGRES_PORT` | порт БД | `5432` |
 | `CORS_ALLOWED_ORIGINS` | разрешённые origins | `http://localhost:8000,...` |
+| `FASTAPI_JWT_ALGORITHM` | алгоритм подписи JWT | `HS256` |
+| `FASTAPI_ACCESS_TOKEN_EXPIRE_MINUTES` | время жизни access-токена | `30` |
+| `FASTAPI_REFRESH_TOKEN_EXPIRE_DAYS` | время жизни refresh-токена | `7` |
+| `FASTAPI_UGC_API_URL` | адрес UGC-сервиса для BFF | `http://ugc_service:5001/api/v1` |
 
 ---
 
@@ -76,10 +83,11 @@ docker-compose exec web python manage.py createsuperuser
 project/
 ├── fastapi_service/     # FastAPI API-шлюз (JWT, Proxy, Background Tasks)
 │   ├── app/
-│   │   ├── api/         # Роутеры (auth, protected, health)
+│   │   ├── api/         # Тонкие роутеры (auth, protected, pages, health)
+│   │   ├── contracts/   # DTO ответов Django и UGC (что BFF получает)
 │   │   ├── core/        # Безопасность, БД, Конфиг
-│   │   ├── schemas/     # Pydantic схемы
-│   │   └── services/    # Асинхронные HTTP клиенты к Django
+│   │   ├── schemas/     # Pydantic схемы API для фронта (что BFF отдаёт)
+│   │   └── services/    # Бизнес-логика (Auth, MoviePage) и HTTP-клиенты к Django/UGC
 │   └── tests/           # Pytest тесты
 ├── ugc_service/         # Flask UGC Микросервис (Отзывы, Комменты, Рейтинги)
 │   ├── app/
@@ -89,23 +97,25 @@ project/
 │   │   └── middleware.py # Проверка токенов через Django
 │   └── tests/           # Pytest (интеграционные)
 ├── accounts/            # регистрация, вход, выход, me
-│   ├── services.py      # AccountService
+│   ├── services.py      # register / login / logout
 │   ├── exceptions.py    # (использует core.exceptions)
 │   └── tests/
 ├── movies/              # фильмы и жанры
-│   ├── services.py      # MovieService
+│   ├── services.py      # get_top_rated / get_new_releases
 │   └── tests/
 ├── watchlist/           # список просмотра пользователя
-│   ├── services.py      # WatchlistService
+│   ├── services.py      # add / remove / change_status
 │   └── tests/
 ├── subscriptions/       # тарифы и подписки пользователей
-│   ├── services.py      # SubscriptionService
+│   ├── services.py      # activate / cancel / check_expired
 │   └── tests/
 ├── core/                # общие утилиты
 │   ├── conf.py          # единый слой конфигурации
 │   ├── exceptions.py    # доменные исключения
 │   └── exception_handler.py  # обработчик DRF
-├── WEBB/settings/       # настройки Django
+├── config/              # Django-проект: urls, wsgi/asgi, SSR-views
+│   ├── contexts.py      # TypedDict-контракты контекстов шаблонов
+│   └── settings/        # настройки Django
 │   ├── base.py
 │   ├── installed_apps.py
 │   ├── middleware.py
@@ -125,14 +135,15 @@ project/
 
 ### Сервисный слой
 
-Вся бизнес-логика вынесена в `services.py` каждого приложения:
+Вся бизнес-логика вынесена в `services.py` каждого приложения. Состояния у сервисов нет,
+поэтому это модульные функции, а не классы со `@staticmethod` (вызов: `services.register(...)`):
 
-| Приложение | Сервис | Методы |
-|---|---|---|
-| `accounts` | `AccountService` | `register`, `login`, `logout` |
-| `movies` | `MovieService` | `get_top_rated`, `get_new_releases` |
-| `subscriptions` | `SubscriptionService` | `activate`, `cancel`, `check_expired` |
-| `watchlist` | `WatchlistService` | `add`, `remove`, `change_status`, `get_user_watchlist` |
+| Приложение | Функции |
+|---|---|
+| `accounts` | `register`, `login`, `logout` |
+| `movies` | `get_top_rated`, `get_new_releases` |
+| `subscriptions` | `activate`, `cancel`, `check_expired` |
+| `watchlist` | `add`, `remove`, `change_status`, `get_user_watchlist` |
 
 ### Доменные исключения (`core/exceptions.py`)
 
@@ -174,6 +185,18 @@ project/
 | GET | `/protected/profile` | Получить профиль пользователя | Auth |
 | GET | `/protected/recommendations` | Получить рекомендации фильмов | Auth |
 | POST | `/protected/progress/report` | Запуск фоновой задачи отчета | Auth |
+
+### BFF-страницы (`/pages/`)
+Агрегирует данные нескольких сервисов и отдаёт их в форме, удобной конкретной странице фронта.
+
+| Метод | URL | Описание | Доступ |
+|---|---|---|---|
+| GET | `/pages/movies/{id}` | Страница фильма: фильм (Django) + рейтинг зрителей, отзывы и дерево комментариев (UGC) одним запросом | Все |
+
+- Запросы к Django и UGC идут параллельно (`asyncio.gather`)
+- Данные подготовлены под UI: `duration_label` (`"2 ч 49 мин"`), `genres` списком строк, готовая подпись рейтинга, `author` у отзывов/комментариев, счётчики
+- Если UGC недоступен, страница отдаётся частично, а недоступные блоки перечислены в `unavailable`. Нет фильма в Django — `404`
+- `templates/movie_detail.html` читает данные страницы через этот эндпоинт вместо трёх отдельных запросов в UGC
 
 ### Системные (`/system/`)
 | Метод | URL | Описание | Доступ |
@@ -226,15 +249,15 @@ project/
 
 Базовый URL: `http://localhost:8000/api/`
 
-### Фильмы (`/movies/`)
+### Фильмы (`/movies/movies/`)
 
 | Метод | URL | Описание | Доступ |
 |---|---|---|---|
-| GET | `/movies/` | Список фильмов (пагинация) | Все |
-| GET | `/movies/{id}/` | Детали фильма | Все |
-| POST | `/movies/` | Создать фильм | Admin |
-| PUT/PATCH | `/movies/{id}/` | Редактировать фильм | Admin |
-| DELETE | `/movies/{id}/` | Удалить фильм | Admin |
+| GET | `/movies/movies/` | Список фильмов (пагинация) | Все |
+| GET | `/movies/movies/{id}/` | Детали фильма | Все |
+| POST | `/movies/movies/` | Создать фильм | Admin |
+| PUT/PATCH | `/movies/movies/{id}/` | Редактировать фильм | Admin |
+| DELETE | `/movies/movies/{id}/` | Удалить фильм | Admin |
 
 **Параметры фильтрации:**
 - `?genres={id}` - по жанру

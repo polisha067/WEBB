@@ -32,15 +32,17 @@ class TestDjangoIntegration:
     @respx.mock
     async def test_protected_recommendations(self, async_client, jwt_bearer_headers):
         """GET /protected/recommendations: проверка структуры ответа"""
-        # Мокаем два вызова: verify_django_token + recommendations
-        respx.get(f"{DJANGO_BASE}/accounts/me/").mock(
-            return_value=Response(200, json={"id": 1, "username": "test", "email": "t@e.com"})
-        )
-        respx.get(f"{DJANGO_BASE}/movies/").mock(
-            return_value=Response(200, json=[
-                {"id": 1, "title": "Movie 1", "rating": 8.5},
-                {"id": 2, "title": "Movie 2", "rating": 7.2}
-            ])
+        respx.get(f"{DJANGO_BASE}/movies/movies/").mock(
+            return_value=Response(200, json={
+                "count": 3,
+                "next": None,
+                "previous": None,
+                "results": [
+                    {"id": 1, "title": "Movie 1", "rating": 8.5},
+                    {"id": 2, "title": "Movie 2", "rating": 7.2},
+                    {"id": 3, "title": "Movie 3", "rating": 6.0},
+                ],
+            })
         )
 
         response = await async_client.get(
@@ -77,13 +79,8 @@ class TestDjangoIntegration:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
-    @respx.mock
     async def test_background_task_progress_report(self, async_client, jwt_bearer_headers):
         """POST /protected/progress/report -> 202 и BackgroundTask запланирована"""
-        respx.get(f"{DJANGO_BASE}/accounts/me/").mock(
-            return_value=Response(200, json={"id": 1, "username": "test", "email": "t@e.com"})
-        )
-
         response = await async_client.post(
             "/api/v1/protected/progress/report",
             headers=jwt_bearer_headers,

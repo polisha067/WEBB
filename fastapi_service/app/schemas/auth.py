@@ -55,4 +55,17 @@ class TokenPayload(BaseModel):
     sub: str
     username: str
     exp: int
-    type: str  
+    type: str
+    django_token: str = ""
+
+
+class CurrentUser(BaseModel):
+    """Пользователь, извлечённый из access-токена"""
+    id: int
+    username: str
+    django_token: str = ""
+
+    @property
+    def django_authorization(self) -> str:
+        """Заголовок Authorization для запросов в Django от имени пользователя"""
+        return f"Token {self.django_token}"

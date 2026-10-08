@@ -2,12 +2,12 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from movies.models import Movie
-from ..services import WatchlistService
+from .. import services
 from ..models import Watchlist
 
 
 class WatchlistServiceTest(TestCase):
-    """Тесты для WatchlistService"""
+    """Тесты для сервисных функций watchlist"""
     
     def setUp(self):
         self.user = User.objects.create_user(
@@ -25,7 +25,7 @@ class WatchlistServiceTest(TestCase):
 
     def test_add_movie_to_watchlist(self):
         """Тест 1: Добавление фильма"""
-        result = WatchlistService.add(self.user, self.movie, 'want_to_watch')
+        result = services.add(self.user, self.movie, 'want_to_watch')
         
         self.assertIsNotNone(result.id)
         self.assertEqual(result.user, self.user)
@@ -34,24 +34,24 @@ class WatchlistServiceTest(TestCase):
 
     def test_add_duplicate_movie(self):
         """Тест 2: Попытка добавить дубликат"""
-        WatchlistService.add(self.user, self.movie, 'want_to_watch')
+        services.add(self.user, self.movie, 'want_to_watch')
         
         with self.assertRaises(ValidationError):
-            WatchlistService.add(self.user, self.movie, 'watching')
+            services.add(self.user, self.movie, 'watching')
 
     def test_remove_movie_from_watchlist(self):
         """Тест 3: Удаление фильма"""
-        WatchlistService.add(self.user, self.movie, 'want_to_watch')
+        services.add(self.user, self.movie, 'want_to_watch')
         
-        result = WatchlistService.remove(self.user, self.movie)
+        result = services.remove(self.user, self.movie)
         
         self.assertTrue(result)
         self.assertFalse(Watchlist.objects.filter(user=self.user, movie=self.movie).exists())
 
     def test_change_status(self):
         """Тест 4: Изменение статуса"""
-        WatchlistService.add(self.user, self.movie, 'want_to_watch')
+        services.add(self.user, self.movie, 'want_to_watch')
         
-        result = WatchlistService.change_status(self.user, self.movie, 'watched')
+        result = services.change_status(self.user, self.movie, 'watched')
         
         self.assertEqual(result.status, 'watched')

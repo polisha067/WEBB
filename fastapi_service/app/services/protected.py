@@ -1,6 +1,7 @@
-from typing import Any
-
+from app.contracts import parse_contract
+from app.contracts.django import DjangoMovie, DjangoPage, DjangoUser
 from app.core.config import settings
+from app.schemas.protected import ProfileResponse, RecommendationItem, RecommendationsResponse
 from app.services.django_client import DjangoClient
 
 
@@ -10,31 +11,26 @@ class ProtectedService:
     def __init__(self, django_client: DjangoClient) -> None:
         self._django_client = django_client
 
-    async def get_profile(self, authorization: str) -> dict[str, Any]:
-        return await self._django_client.request(
+    async def get_profile(self, authorization: str) -> ProfileResponse:
+        data = await self._django_client.request(
             method="GET",
-            endpoint=settings.DJANGO_VERIFY_ENDPOINT,
+            endpoint=settings.DJANGO_PROFILE_ENDPOINT,
             headers={"Authorization": authorization},
         )
+        user = parse_contract(DjangoUser, data, source="Django")
+        return ProfileResponse(id=user.id, username=user.username, email=user.email)
 
-    async def get_recommendations(
-        self, authorization: str, limit: int = 5
-    ) -> list[dict[str, Any]]:
-        raw_movies = await self._django_client.request(
+    async def get_recommendations(self, authorization: str, limit: int = 5) -> RecommendationsResponse:
+        data = await self._django_client.request(
             method="GET",
-            endpoint=settings.DJANGO_RECOMMENDATIONS_ENDPOINT,
+            endpoint=settings.DJANGO_MOVIES_ENDPOINT,
             headers={"Authorization": authorization},
+            params={"ordering": "-rating"},
         )
-        if not isinstance(raw_movies, list):
-            return []
-
-        recommendations: list[dict[str, Any]] = []
-        for item in raw_movies[:limit]:
-            recommendations.append(
-                {
-                    "id": item.get("id"),
-                    "title": item.get("title", "Unknown"),
-                    "rating": item.get("rating"),
-                }
-            )
-        return recommendations
+        page = parse_contract(DjangoPage[DjangoMovie], data, source="Django")
+        return RecommendationsResponse(
+            recommendations=[
+                RecommendationItem(id=movie.id, title=movie.title, rating=movie.rating)
+                for movie in page.results[:limit]
+            ]
+        )

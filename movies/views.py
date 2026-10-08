@@ -3,7 +3,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import Genre, Movie
 from .serializers import GenreSerializer, MovieSerializer
 from .openapi import GENRE_SCHEMA, MOVIE_SCHEMA
-from .services import MovieService
+from . import services
 
 
 @GENRE_SCHEMA
@@ -46,8 +46,8 @@ class MovieViewSet(viewsets.ModelViewSet):
             ordering = self.request.query_params.get('ordering')
 
             if ordering == '-rating':
-                return MovieService.get_top_rated()
+                return services.get_top_rated()
 
-            return MovieService.get_new_releases()
+            return services.get_new_releases()
 
         return Movie.objects.all().prefetch_related('genres')

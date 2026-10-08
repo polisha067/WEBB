@@ -17,6 +17,7 @@ jobs:
     - name: Create .env file for CI
       run: |
         cat << EOF > .env
+        DJANGO_SETTINGS_MODULE=config.settings.base
         DJANGO_SECRET_KEY=test_secret_key
         DEBUG=True
         ALLOWED_HOSTS=*
@@ -32,6 +33,10 @@ jobs:
         FASTAPI_DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/cinema_db
         FASTAPI_DJANGO_API_URL=http://web:8000/api
         FASTAPI_DJANGO_API_TIMEOUT=5.0
+        FASTAPI_UGC_API_URL=http://ugc_service:5001/api/v1
+        FASTAPI_JWT_ALGORITHM=HS256
+        FASTAPI_ACCESS_TOKEN_EXPIRE_MINUTES=30
+        FASTAPI_REFRESH_TOKEN_EXPIRE_DAYS=7
         EOF
 
     - name: Build and Start Docker Compose

@@ -1,7 +1,7 @@
 from django.test import TestCase
 
 from movies.models import Movie
-from movies.services import MovieService
+from movies import services
 
 
 class MovieServiceTest(TestCase):
@@ -23,7 +23,7 @@ class MovieServiceTest(TestCase):
             poster=''
         )
 
-        result = list(MovieService.get_top_rated())
+        result = list(services.get_top_rated())
 
         self.assertEqual(result, [movie_high, movie_low])
 
@@ -53,7 +53,7 @@ class MovieServiceTest(TestCase):
             poster=''
         )
 
-        result = list(MovieService.get_new_releases())
+        result = list(services.get_new_releases())
 
         self.assertEqual(
             result,
