@@ -1,0 +1,121 @@
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404, redirect, render
+from movies.models import Movie
+from subscriptions.models import Subscription
+from watchlist.models import Watchlist
+from rest_framework.authtoken.models import Token
+
+from .contexts import (
+    AuthFormContext,
+    HomeContext,
+    MovieDetailContext,
+    SubscriptionDetailContext,
+    WatchlistContext,
+)
+
+
+def home(request):
+    context: HomeContext = {
+        'popular_movies': Movie.objects.all()[:10],
+        'top_movies': Movie.objects.order_by('-rating')[:10],
+        'new_movies': Movie.objects.order_by('-created_at')[:3],
+        'plans': Subscription.objects.filter(is_active=True),
+    }
+    return render(request, 'home.html', context)
+
+
+def subscription_detail(request, subscription_id):
+    subscription = get_object_or_404(Subscription, id=subscription_id)
+    context: SubscriptionDetailContext = {
+        'subscription': subscription,
+    }
+    return render(request, 'subscription_detail.html', context)
+
+
+def movie_detail(request, movie_id):
+    movie = get_object_or_404(Movie, id=movie_id)
+    in_watchlist = Watchlist.objects.filter(user=request.user, movie=movie).first() if request.user.is_authenticated else None
+    
+    token = None
+    if request.user.is_authenticated:
+        token, _ = Token.objects.get_or_create(user=request.user)
+
+    context: MovieDetailContext = {
+        'movie': movie,
+        'in_watchlist': in_watchlist,
+        'auth_token': token.key if token else None,
+    }
+    return render(request, 'movie_detail.html', context)
+
+
+def watchlist_page(request):
+    if not request.user.is_authenticated:
+        return redirect('home')
+    watchlist = Watchlist.objects.filter(user=request.user).select_related('movie')
+    context: WatchlistContext = {
+        'watchlist': watchlist,
+    }
+    return render(request, 'watchlist.html', context)
+
+
+def login_page(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+
+    error = ''
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            error = 'Неверный логин или пароль.'
+        else:
+            login(request, user)
+            return redirect('home')
+
+    context: AuthFormContext = {'error': error}
+    return render(request, 'login.html', context)
+
+
+def register_page(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+
+    error = ''
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        password_confirm = request.POST.get('password_confirm', '')
+
+        if not username or not password:
+            error = 'Логин и пароль обязательны.'
+        elif password != password_confirm:
+            error = 'Пароли не совпадают.'
+        elif User.objects.filter(username=username).exists():
+            error = 'Пользователь с таким логином уже существует.'
+        else:
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+            )
+            login(request, user)
+            return redirect('home')
+
+    context: AuthFormContext = {'error': error}
+    return render(request, 'register.html', context)
+
+
+def logout_page(request):
+    if request.method == 'POST':
+        logout(request)
+    return redirect('home')
+
+
+def account_page(request):
+    if not request.user.is_authenticated:
+        return redirect('home')
+    return render(request, 'account.html')
